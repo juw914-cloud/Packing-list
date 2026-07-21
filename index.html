@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#333F22">
+<title>Load &amp; Packing — Master Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#EDE7D8;--panel:#FBF9F3;--panel-2:#F3EEE0;--ink:#26281F;--ink-soft:#565844;
+    --olive:#4A5A32;--olive-dark:#333F22;--khaki-line:#C9C0A4;--khaki-soft:#DED6BE;
+    --brick:#8C3F32;--brick-dark:#6E2F26;--stamp:#7C7458;--gold:#B98B2A;
+    --shadow:0 1px 0 rgba(38,40,31,.06);--lift:0 6px 22px rgba(38,40,31,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;}
+  body{background:var(--paper);background-image:radial-gradient(circle at 1px 1px,rgba(38,40,31,.06) 1px,transparent 0);
+    background-size:16px 16px;color:var(--ink);font-family:'IBM Plex Mono',monospace;padding:0 0 120px;-webkit-text-size-adjust:100%;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 14px;}
+
+  header{background:var(--olive-dark);color:var(--paper);border-bottom:4px solid var(--gold);}
+  .header-inner{max-width:1080px;margin:0 auto;padding:15px 14px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .brand-eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#CFC9A9;}
+  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.02em;text-transform:uppercase;font-size:23px;margin:3px 0 0;line-height:1.05;}
+  .header-tag{font-size:11px;color:#CFC9A9;margin-top:3px;}
+  .header-stamp{border:2px solid var(--gold);color:var(--gold);font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:11px;padding:6px 11px;transform:rotate(-2deg);white-space:nowrap;}
+  .tabs{max-width:1080px;margin:12px auto 0;padding:0 8px;display:flex;overflow-x:auto;}
+  .tab{font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:500;
+    padding:11px 16px;cursor:pointer;color:#CFC9A9;border-bottom:3px solid transparent;user-select:none;white-space:nowrap;}
+  .tab.active{color:#fff;border-bottom-color:var(--gold);background:rgba(255,255,255,.06);}
+  .tab .tab-sub{display:block;font-size:8px;letter-spacing:.06em;color:#9c9878;font-weight:400;margin-top:2px;}
+  .tab.active .tab-sub{color:var(--gold);}
+
+  .view{display:none;}.view.active{display:block;}
+  .intro{font-size:11.5px;color:var(--ink-soft);line-height:1.6;margin:16px 0 0;background:var(--panel);border-left:3px solid var(--gold);padding:11px 14px;box-shadow:var(--shadow);}
+  .intro b{color:var(--olive-dark);}
+
+  .btn{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:500;border:1.5px solid var(--olive-dark);background:var(--panel);color:var(--olive-dark);padding:9px 13px;cursor:pointer;transition:background .12s,color .12s;display:inline-flex;align-items:center;gap:6px;}
+  .btn:hover{background:var(--olive-dark);color:var(--panel);}
+  .btn.gold{border-color:var(--gold);color:#8a6413;}.btn.gold:hover{background:var(--gold);color:#fff;}
+  .btn.brick{border-color:var(--brick);color:var(--brick-dark);}.btn.brick:hover{background:var(--brick);color:#fff;}
+  .btn.ghost{border-style:dashed;}.btn.sm{padding:6px 10px;font-size:11px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px;}
+  .wt-chk{font-size:11px;color:var(--olive-dark);text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:var(--panel);border:1px solid var(--khaki-line);padding:6px 10px;}
+  .wt-chk input{accent-color:var(--olive);cursor:pointer;}
+  .pl-row.struck{background:rgba(140,63,50,.14);border-left:4px solid var(--brick);}
+  .pl-row.struck .pl-name{text-decoration:line-through;text-decoration-color:var(--brick);text-decoration-thickness:2px;color:var(--brick-dark);font-weight:600;opacity:1;}
+  .strike-note{font-size:9px;letter-spacing:.06em;background:var(--brick);color:#fff;padding:1px 6px;margin-left:6px;text-transform:uppercase;font-family:'Oswald',sans-serif;font-weight:600;}
+  .m-kept{display:inline-block;font-size:9px;letter-spacing:.05em;background:var(--brick);color:#fff;padding:2px 8px;margin-left:8px;text-transform:uppercase;font-family:'Oswald',sans-serif;font-weight:600;white-space:nowrap;vertical-align:middle;}
+  .pl-detail{padding:2px 13px 7px 26px;background:var(--panel);border-bottom:1px dashed var(--khaki-soft);}
+  .pl-detail div{font-size:10.5px;color:var(--ink-soft);line-height:1.55;padding-left:12px;position:relative;}
+  .pl-detail div::before{content:"–";position:absolute;left:0;color:var(--stamp);}
+
+  .block{background:var(--panel);border:1px solid var(--khaki-line);box-shadow:var(--shadow);margin-top:14px;}
+  .block-head{padding:10px 14px;background:var(--olive-dark);color:var(--paper);display:flex;align-items:center;gap:10px;}
+  .block-head h2{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin:0;flex:1;}
+  .block-head .hint{font-size:10px;color:#CFC9A9;}
+  .cat-search{width:100%;border:1px solid var(--khaki-line);background:var(--panel);padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);}
+  .cat-search:focus{outline:none;border-color:var(--olive);}
+
+  .gh{display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--olive);color:var(--paper);cursor:pointer;user-select:none;position:sticky;top:0;z-index:5;}
+  .gh:hover{background:var(--olive-dark);}
+  .gh h4{font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin:0;flex:1;}
+  .gh .gsum{font-size:10.5px;color:#e7e1c8;}
+  .gh-caret{font-size:10px;transition:transform .15s;flex-shrink:0;color:var(--gold);}
+  .m-cat:not(.collapsed)>.gh .gh-caret{transform:rotate(90deg);}
+  .m-cat.collapsed>.m-cat-body{display:none;}
+  body.hide-detail .m-detail{display:none;}
+
+  .di-batt{display:inline-block;font-size:8.5px;letter-spacing:.04em;background:var(--gold);color:#fff;padding:1px 5px;margin-left:5px;vertical-align:middle;text-transform:uppercase;font-family:'Oswald',sans-serif;white-space:nowrap;}
+
+  /* ---------- MASTER ROW ---------- */
+  .m-row{border-bottom:1px dashed var(--khaki-soft);}
+  .m-row.struck{background:rgba(140,63,50,.14);border-left:4px solid var(--brick);}
+  .m-top{display:flex;align-items:center;gap:9px 8px;padding:9px 13px;flex-wrap:wrap;}
+  .m-name{flex:1 1 100%;min-width:0;font-size:14px;line-height:1.3;margin-bottom:2px;}
+  .m-row.struck .m-name{text-decoration:line-through;text-decoration-color:var(--brick);text-decoration-thickness:2px;color:var(--brick-dark);font-weight:600;opacity:1;}
+  .ctrl{display:flex;align-items:center;gap:5px;}
+  .ctrl .lbl{font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--stamp);}
+  .stepper{display:flex;align-items:center;}
+  .stepper button{width:24px;height:30px;border:1px solid var(--khaki-line);background:var(--panel);color:var(--olive-dark);font-size:16px;line-height:1;cursor:pointer;font-family:'Oswald',sans-serif;}
+  .stepper button:hover{background:var(--olive);color:#fff;}
+  .stepper input{width:54px;height:30px;border:1px solid var(--khaki-line);border-left:none;border-right:none;background:var(--panel);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);}
+  .stepper.q input{width:42px;}.stepper input:focus{outline:none;}
+  .pdf-tog{font-family:'IBM Plex Mono',monospace;font-size:10px;border:1px solid var(--khaki-line);background:var(--panel);color:var(--stamp);min-width:28px;height:30px;cursor:pointer;padding:0 4px;}
+  .pdf-tog.on{background:var(--olive);border-color:var(--olive);color:#fff;}
+  .pct-toggle{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.02em;border:1.5px solid var(--gold);background:var(--panel);color:#8a6413;padding:6px 9px;cursor:pointer;height:30px;white-space:nowrap;font-weight:600;}
+  .pct-toggle:hover{background:var(--gold);color:#fff;}
+  .batt-input{width:70px;height:30px;border:1px solid var(--khaki-line);background:var(--panel);padding:0 6px;font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:center;color:var(--ink);}
+  .batt-input:focus{outline:none;border-color:var(--olive);}
+  .assign-chip{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.03em;text-transform:uppercase;border:1.5px solid var(--olive);background:var(--panel);color:var(--olive-dark);padding:6px 10px;cursor:pointer;white-space:nowrap;height:30px;}
+  .assign-chip:hover{background:var(--olive);color:#fff;}.assign-chip.all{border-color:var(--gold);color:#8a6413;}
+  .m-reset{border:1.5px solid var(--olive);background:var(--panel);color:var(--olive-dark);font-family:'Oswald',sans-serif;font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;height:30px;padding:0 11px;line-height:1;white-space:nowrap;flex-shrink:0;}
+  .m-reset:hover{background:var(--olive);color:#fff;}
+  .m-strike{border:1.5px solid var(--brick);background:var(--panel);color:var(--brick-dark);font-family:'Oswald',sans-serif;font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;height:30px;padding:0 12px;line-height:1;white-space:nowrap;flex-shrink:0;}
+  .m-strike:hover{background:var(--brick);color:#fff;}
+  .m-strike.restore{border-color:var(--olive);color:var(--olive-dark);background:#eef0e6;}
+  .m-strike.restore:hover{background:var(--olive);color:#fff;}
+  .assign-panel{display:none;padding:4px 13px 12px;background:var(--panel-2);border-top:1px solid var(--khaki-soft);}
+  .m-row.expanded .assign-panel{display:block;}
+  .assign-quick{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;}
+  .assign-quick button{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--khaki-line);background:var(--panel);color:var(--olive-dark);padding:5px 9px;cursor:pointer;}
+  .assign-quick button:hover{background:var(--olive-dark);color:#fff;}
+  .assign-grp{margin-top:8px;}.assign-grp .agt{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--stamp);margin-bottom:5px;}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .toggle{font-size:11px;font-family:'IBM Plex Mono',monospace;border:1.5px solid var(--khaki-line);background:var(--panel);color:var(--ink-soft);padding:5px 9px;cursor:pointer;user-select:none;transition:all .1s;}
+  .toggle.on{background:var(--olive);border-color:var(--olive);color:#fff;font-weight:600;}.toggle:hover{border-color:var(--olive);}
+
+  /* ---------- INLINE DETAIL EDITOR (google-docs style, always visible) ---------- */
+  .m-detail{padding:4px 13px 9px 30px;background:var(--panel);border-top:1px dashed var(--khaki-soft);}
+  .m-detail.pdf-off{opacity:.5;}
+  .m-detail.pdf-off::after{content:"detail off for PDF";font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brick);}
+  .dl-list{}
+  .dl-line{display:flex;align-items:flex-start;gap:6px;margin:2px 0;}
+  .dl-line .dl-bullet{color:var(--stamp);font-size:12px;width:10px;flex-shrink:0;text-align:center;line-height:1.9;}
+  .dl-input{flex:1;min-width:0;border:1px solid transparent;border-radius:2px;background:transparent;padding:4px 7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink);line-height:1.5;resize:none;overflow:hidden;transition:background .1s,border-color .1s;}
+  .dl-input::placeholder{color:var(--khaki-line);}
+  .dl-input:hover{background:var(--panel-2);border-color:var(--khaki-soft);}
+  .dl-input:focus{outline:none;border-color:var(--olive);background:#fff;color:var(--ink);box-shadow:0 1px 0 rgba(74,90,50,.2);}
+  .dl-strike{width:26px;height:26px;border:1px solid var(--khaki-line);background:var(--panel);color:var(--brick);cursor:pointer;font-size:12px;line-height:1;flex-shrink:0;border-radius:2px;font-family:'IBM Plex Mono',monospace;}
+  .dl-strike:hover{background:var(--brick);color:#fff;}
+  .dl-strike.on{background:#eef0e6;border-color:var(--olive);color:var(--olive-dark);}
+  .dl-strike.on:hover{background:var(--olive);color:#fff;}
+  .dl-input.struck{text-decoration:line-through;text-decoration-color:var(--brick);color:var(--brick-dark);opacity:.75;}
+  .dl-line.struck .dl-bullet{color:var(--brick);}
+  .dl-del{width:24px;height:26px;border:1px solid transparent;background:transparent;color:var(--khaki-line);cursor:pointer;font-size:13px;line-height:1;flex-shrink:0;border-radius:2px;}
+  .dl-line:hover .dl-del{color:var(--brick);border-color:var(--khaki-soft);}
+  .dl-del:hover{background:var(--brick)!important;color:#fff!important;}
+  /* struck detail lines in read-only lists / doc */
+  .pl-detail .struck-line,.doc-detail .struck-line{text-decoration:line-through;text-decoration-color:var(--brick);color:var(--stamp);opacity:.72;}
+  .dl-add{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.04em;text-transform:uppercase;font-weight:500;border:1px dashed var(--khaki-line);background:transparent;color:var(--stamp);padding:5px 10px;cursor:pointer;margin:5px 0 1px;}
+  .dl-add:hover{background:var(--olive);border-color:var(--olive);color:#fff;}
+  .dl-empty{font-size:10.5px;color:var(--stamp);font-style:italic;padding:2px 0 4px;}
+  .dl-prog{display:flex;align-items:center;gap:10px;margin:0 0 8px;}
+  .dl-prog-txt{font-family:'Oswald',sans-serif;font-weight:600;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--stamp);white-space:nowrap;}
+  .dl-prog-bar{flex:0 0 120px;max-width:40%;height:6px;background:var(--panel-2);border:1px solid var(--khaki-line);overflow:hidden;}
+  .dl-prog-bar>span{display:block;height:100%;background:var(--gold);transition:width .15s;}
+  .dl-prog.done .dl-prog-txt{color:var(--olive-dark);}
+  .dl-prog.done .dl-prog-bar>span{background:var(--olive);}
+  .who-head{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--stamp);margin:0 0 4px;}
+
+  .addcustom{display:flex;gap:6px;padding:11px 12px;flex-wrap:wrap;align-items:center;background:var(--panel-2);border-top:1px solid var(--khaki-soft);}
+  .addcustom input,.addcustom select{border:1px solid var(--khaki-line);background:var(--panel);padding:8px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .addcustom .ac-name{flex:1;min-width:120px;}.addcustom .ac-kg{width:70px;text-align:right;}.addcustom .ac-batt{width:84px;}
+
+  /* ---------- READ-ONLY LISTS ---------- */
+  .cfg{background:var(--panel);border:1px solid var(--khaki-line);box-shadow:var(--shadow);padding:14px 16px;margin:16px 0 0;}
+  .section-label{font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:.1em;color:var(--olive-dark);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .section-label::before{content:"";width:13px;height:13px;background:var(--gold);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);flex-shrink:0;}
+  .cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 14px;}
+  .field label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--stamp);margin-bottom:4px;}
+  .field input,.field select{width:100%;border:none;border-bottom:1.5px solid var(--khaki-line);background:transparent;padding:6px 2px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);}
+  .field select{cursor:pointer;}.field input:focus,.field select:focus{outline:none;border-bottom-color:var(--olive);}
+
+  .totbar{display:flex;justify-content:space-between;align-items:center;background:var(--olive-dark);color:var(--paper);padding:12px 16px;margin-top:14px;flex-wrap:wrap;gap:8px;}
+  .totbar .tl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#CFC9A9;}
+  .totbar .tv{font-family:'Oswald',sans-serif;font-weight:700;font-size:30px;line-height:1;}
+  .totbar .tv .unit{font-size:14px;color:#CFC9A9;}
+  .totbar .ts{font-size:11px;color:#CFC9A9;}
+
+  .pl-colhead{display:flex;align-items:center;gap:8px;padding:6px 13px;font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--stamp);border-bottom:1px solid var(--khaki-line);}
+  .pl-colhead .h-name{flex:1;}.pl-colhead .h-q{width:44px;text-align:center;}.pl-colhead .h-u{width:66px;text-align:right;}.pl-colhead .h-l{width:66px;text-align:right;}
+  .pl-gh{display:flex;align-items:center;gap:8px;padding:8px 13px;background:var(--panel-2);border-top:1px solid var(--khaki-soft);border-bottom:1px solid var(--khaki-soft);}
+  .pl-gh h4{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;margin:0;flex:1;color:var(--olive-dark);}
+  .pl-gh .gsum{font-size:10.5px;color:var(--stamp);}
+  .pl-row{display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px dashed var(--khaki-soft);font-size:12.5px;}
+  .pl-name{flex:1;min-width:0;line-height:1.25;}
+  .pl-q{width:44px;text-align:center;color:var(--ink-soft);font-size:12px;}
+  .pl-u{width:66px;text-align:right;color:var(--stamp);font-size:11.5px;}
+  .pl-l{width:66px;text-align:right;color:var(--olive-dark);font-weight:500;font-size:12px;}
+  .pl-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--panel-2);border-top:2px solid var(--olive-dark);}
+  .pl-foot .lbl{font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:12px;letter-spacing:.06em;color:var(--olive-dark);}
+  .pl-foot .tot{font-family:'Oswald',sans-serif;font-weight:700;font-size:19px;color:var(--olive-dark);}
+  .edit-hint{font-size:11px;color:var(--stamp);text-align:center;padding:14px;line-height:1.5;}
+
+  /* establishment cards */
+  .grp-title{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--paper);background:var(--olive);padding:7px 13px;margin:14px 0 0;}
+  .estab-list{background:var(--panel);border:1px solid var(--khaki-line);box-shadow:var(--shadow);}
+  .estab{border-bottom:1px solid var(--khaki-soft);}.estab:last-child{border-bottom:none;}
+  .estab-head{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;user-select:none;}
+  .estab-head:hover{background:var(--panel-2);}
+  .estab-name{font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:.03em;text-transform:uppercase;font-weight:600;color:var(--ink);width:160px;flex-shrink:0;}
+  .estab-bar-wrap{flex:1;min-width:60px;display:flex;align-items:center;}
+  .estab-bar-track{display:block;flex:1;height:15px;background:var(--panel-2);border:1px solid var(--khaki-line);overflow:hidden;}
+  .estab-bar{display:block;height:100%;background:linear-gradient(90deg,var(--olive),var(--olive-dark));}
+  .estab-bar.heavy{background:linear-gradient(90deg,var(--brick),var(--brick-dark));}
+  .estab-kg{font-family:'Oswald',sans-serif;font-weight:700;font-size:16px;color:var(--olive-dark);width:70px;text-align:right;flex-shrink:0;}
+  .estab-kg small{font-size:9px;color:var(--stamp);font-weight:500;}
+  .estab-caret{font-size:10px;color:var(--stamp);width:14px;flex-shrink:0;transition:transform .15s;}
+  .estab.open .estab-caret{transform:rotate(90deg);}
+  .estab-detail{display:none;background:var(--panel-2);border-top:1px solid var(--khaki-soft);}
+  .estab.open .estab-detail{display:block;}
+  .ov-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;}
+  .stat{background:var(--panel);border:1px solid var(--khaki-line);box-shadow:var(--shadow);padding:12px 14px;}
+  .stat .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--stamp);}
+  .stat .v{font-family:'Oswald',sans-serif;font-weight:700;font-size:24px;color:var(--olive-dark);line-height:1.1;margin-top:2px;}
+  .stat .v small{font-size:12px;color:var(--stamp);}
+  .stat .s{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+
+  footer{max-width:1080px;margin:24px auto 0;padding:0 14px;font-size:10.5px;color:var(--stamp);line-height:1.6;}
+  footer b{color:var(--ink-soft);}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--olive-dark);color:var(--paper);font-size:12px;padding:10px 18px;box-shadow:var(--lift);transition:opacity .2s,transform .2s;z-index:100;pointer-events:none;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .name-edit{flex:1;width:100%;min-width:0;border:1px solid transparent;background:transparent;font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.01em;font-size:15px;color:var(--ink);padding:4px 6px;}
+  .name-edit:hover{border-color:var(--khaki-soft);background:var(--panel-2);}
+  .name-edit:focus{outline:none;border-color:var(--olive);background:var(--panel);}
+  .name-edit.struck{text-decoration:line-through;text-decoration-color:var(--brick);text-decoration-thickness:2px;color:var(--brick-dark);font-weight:600;}
+  .viewswitch{display:flex;border:1px solid var(--gold);}
+  .viewswitch button{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.04em;text-transform:uppercase;background:transparent;color:#CFC9A9;border:none;padding:5px 9px;cursor:pointer;}
+  .viewswitch button.on{background:var(--gold);color:#fff;}
+  /* forced mobile preview on desktop */
+  body.force-m .wrap,body.force-m .header-inner,body.force-m .tabs{max-width:470px;}
+  body.force-m h1{font-size:19px;}
+  body.force-m .m-name{flex-basis:100%;}
+  body.force-m .ctrl .lbl{display:none;}
+  body.force-m .estab-name{width:120px;font-size:12px;}
+  body.force-m .estab-bar-wrap{display:none;}
+  body.force-m .tabs{overflow-x:auto;}
+  @media(max-width:640px){
+    h1{font-size:19px;}.m-name{flex-basis:100%;}.ctrl .lbl{display:none;}
+    .estab-name{width:120px;font-size:12px;}.estab-bar-wrap{display:none;}
+  }
+  /* ---------- VIEW-ONLY DOCUMENT MODE (shareable link) ---------- */
+  .docview{display:none;}
+  body.docmode{background:#eceae4;padding:0;}
+  body.docmode>header,body.docmode>.wrap{display:none!important;}
+  body.docmode .docview{display:block;}
+  .doc-bar{position:sticky;top:0;background:var(--olive-dark);color:var(--paper);display:flex;gap:8px;align-items:center;padding:9px 16px;z-index:10;flex-wrap:wrap;border-bottom:3px solid var(--gold);}
+  .doc-bar .db-tag{font-size:11px;color:#cfc9a9;flex:1;min-width:180px;line-height:1.4;}
+  .doc-page{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 6px 34px rgba(38,40,31,.16);padding:46px 56px;}
+  .doc-head{border-bottom:3px solid var(--olive-dark);padding-bottom:14px;margin-bottom:8px;}
+  .doc-eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:600;}
+  .doc-title{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:30px;margin:4px 0 0;color:var(--olive-dark);}
+  .doc-meta{font-size:12px;color:var(--ink-soft);margin-top:6px;letter-spacing:.02em;}
+  .doc-toc{font-size:11px;line-height:1.9;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--khaki-line);padding:10px 13px;margin:16px 0;}
+  .doc-toc a{color:var(--olive-dark);text-decoration:none;}
+  .doc-toc a:hover{text-decoration:underline;}
+  .doc-toc b{color:var(--olive-dark);}
+  .doc-h2{font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:16px;color:#fff;background:var(--olive-dark);padding:8px 12px;margin:26px 0 0;}
+  .doc-grp{font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--paper);background:var(--olive);padding:6px 12px;margin-top:16px;}
+  .doc-role{display:flex;align-items:baseline;gap:10px;margin-top:12px;padding-bottom:3px;border-bottom:2px solid var(--khaki-line);}
+  .doc-role-name{font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:15px;color:var(--ink);flex:1;}
+  .doc-role-tot{font-family:'Oswald',sans-serif;font-weight:700;font-size:16px;color:var(--olive-dark);}
+  .doc-cat{display:flex;justify-content:space-between;align-items:center;font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:11px;color:var(--olive-dark);background:var(--panel-2);border-bottom:1px solid var(--khaki-line);padding:5px 10px;margin-top:8px;}
+  .doc-item{display:flex;align-items:baseline;gap:8px;padding:5px 10px 4px;border-bottom:1px dashed var(--khaki-soft);font-size:13px;}
+  .doc-item .di-name{flex:1;color:var(--ink);}
+  .doc-item .di-q{width:38px;text-align:center;color:var(--ink-soft);font-size:12px;}
+  .doc-item .di-l{width:74px;text-align:right;color:var(--olive-dark);font-weight:500;}
+  .doc-item.struck .di-name{text-decoration:line-through;text-decoration-color:var(--brick);color:var(--brick-dark);}
+  .doc-item.struck .di-l{color:var(--stamp);}
+  .doc-struck-tag{font-family:'Oswald',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;background:var(--brick);color:#fff;padding:1px 5px;margin-left:6px;vertical-align:middle;}
+  .doc-detail{padding:2px 10px 6px 22px;}
+  .doc-detail div{font-size:11px;color:var(--ink-soft);line-height:1.55;padding-left:12px;position:relative;}
+  .doc-detail div::before{content:"–";position:absolute;left:0;color:var(--stamp);}
+  .doc-total{display:flex;justify-content:space-between;align-items:center;background:var(--olive-dark);color:#fff;font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:14px;padding:10px 12px;margin-top:6px;}
+  .doc-foot{font-size:10.5px;color:var(--stamp);margin-top:24px;padding-top:12px;border-top:1px solid var(--khaki-line);line-height:1.6;}
+  /* link modal */
+  .modal-back{display:none;position:fixed;inset:0;background:rgba(38,40,31,.55);z-index:200;align-items:center;justify-content:center;padding:18px;}
+  .modal-back.show{display:flex;}
+  .modal{background:var(--panel);border-top:5px solid var(--gold);box-shadow:var(--lift);max-width:520px;width:100%;padding:20px 22px;}
+  .modal h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:17px;color:var(--olive-dark);margin:0 0 6px;}
+  .modal p{font-size:12px;color:var(--ink-soft);line-height:1.55;margin:0 0 12px;}
+  .modal .link-row{display:flex;gap:6px;margin-bottom:10px;}
+  .modal input.link-url{flex:1;min-width:0;border:1px solid var(--khaki-line);background:#fff;padding:9px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);}
+  .modal .link-warn{display:none;font-size:11px;color:var(--brick-dark);background:rgba(140,63,50,.1);border-left:3px solid var(--brick);padding:8px 10px;margin-bottom:10px;line-height:1.5;}
+  .modal .modal-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  @media(max-width:640px){.doc-page{margin:0;padding:22px 15px;box-shadow:none;}.doc-title{font-size:23px;}}
+
+  @media print{
+    body.docmode .doc-bar{display:none!important;}
+    body.docmode .doc-page{box-shadow:none;margin:0;max-width:none;padding:0;}
+    body{background:#fff;padding:0;}
+    .tabs,.toolbar,.addcustom,.cat-search,.intro,.block-head .hint,.no-print{display:none!important;}
+    .block,.estab-list,.stat{box-shadow:none;border-color:#999;}
+    .view{display:none;}.view.active{display:block;}
+    .estab-detail{display:block!important;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="brand-eyebrow">Battalion &middot; Field Training Load Management</div>
+      <h1>Load &amp; Packing List</h1>
+      <div class="header-tag">One master list controls everything — packing lists follow automatically</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <div class="header-stamp">Load Discipline</div>
+      <div class="viewswitch no-print"><button id="vsDesk" class="on">&#128421; Desktop</button><button id="vsMob">&#128241; Mobile</button></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-view="master">&#9881; Master List<span class="tab-sub">control everything</span></div>
+    <div class="tab" data-view="general">&#9776; General Packing List<span class="tab-sub">everything to bring</span></div>
+    <div class="tab" data-view="estab">&#9636; By Establishment<span class="tab-sub">who carries what</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ MASTER ============ -->
+  <div class="view active" id="view-master">
+    <div class="intro">
+      <b>This is the one list that controls everything — every field is editable.</b> Click an item’s <b>name</b> to rename it; change its <b>weight</b>, <b>quantity</b> or <b>battery</b>; tap <b>carried by</b> to set which appointments carry it; or press the red <b>✗ Strike off</b> button to strike it off — it stays here in the Master List (crossed out, so you never lose it) but is <b>removed from the packing lists and the shared view</b>, and out of the weight total. The button turns into <b>↻ Restore</b> to bring it back. You can also strike a single detail line the same way. Each item also has a <b>↺ Reset</b> to put just that one item back to its Masterlist default. Every item’s <b>inspection detail from the Inspection Masterlist is shown right underneath it</b> — click any line to edit the wording, press <b>Enter</b> for a new line, <b>+ add detail line</b> to add one, or hit the <b>✗</b> on any single line to strike off just that line (it stays, crossed out). To read faster, tap any <b>section header</b> to collapse it, or use <b>Collapse sections</b> / <b>Hide detail</b> in the toolbar. The General Packing List and every establishment are previews that update from here automatically. Batteries start at <b>100%</b> = the issued fit (e.g. PRC650 = 6&nbsp;×&nbsp;AA); use the <b>Batt fit</b> −&#8202;/&#8202;+ to step to <b>200%</b> (12&nbsp;×&nbsp;AA, double weight), 300%, and so on. Nothing resets unless you choose to: <b>↺</b> resets one item, <b>Clear all strike-offs</b> restores every crossed-out item, and <b>Reset all to baseline</b> starts the whole list over.
+    </div>
+    <div class="toolbar no-print">
+      <button class="btn sm" id="mCollapse">&#8863; Collapse sections</button>
+      <button class="btn sm" id="mHideDetail">Hide detail</button>
+      <button class="btn gold sm" id="mLink">&#128279; Permanent link</button>
+      <button class="btn gold sm" id="mPublish">&#8686; Publish update</button>
+      <button class="btn brick sm" id="mRestore">&#8635; Reset all to baseline</button>
+      <button class="btn sm" id="mClearStrikes">&#10007; Clear all strike-offs</button>
+      <button class="btn ghost sm" id="mSave">Save file</button>
+      <button class="btn ghost sm" id="mOpen">Open file</button>
+      <input type="file" id="mFile" accept="application/json" style="display:none">
+    </div>
+    <input class="cat-search" id="mSearch" placeholder="Search items (e.g. battery, GPMG, water, pack 5)…">
+    <div class="block" style="margin-top:0;">
+      <div class="block-head"><h2>All Items — Master Control</h2><span class="hint" id="mCount"></span></div>
+      <div id="masterList"></div>
+      <div class="addcustom">
+        <input class="ac-name" id="acName" placeholder="Add new item…">
+        <input class="ac-kg" id="acKg" type="number" inputmode="decimal" step="0.01" placeholder="kg">
+        <input class="ac-batt" id="acBatt" placeholder="batt 2×AA">
+        <select id="acCat"></select>
+        <button class="btn sm" id="acAdd">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ GENERAL ============ -->
+  <div class="view" id="view-general">
+    <div class="intro"><b>General packing list — the one source list of everything to bring.</b> Every item on the Master List (except struck-off ones), in section order with its detail and weight. It isn’t split by appointment — everyone reads the same list and knows which items are theirs. Edit anything in the Master List and it updates here.</div>
+    <div class="cfg">
+      <div class="cfg-grid">
+        <div class="field"><label>Unit / Company</label><input id="cfgUnit" placeholder="e.g. B Coy"></div>
+        <div class="field"><label>Exercise / Serial</label><input id="cfgExercise" placeholder="e.g. Ex Panther"></div>
+        <div class="field"><label>Date</label><input id="cfgDate" type="date"></div>
+      </div>
+    </div>
+    <div class="toolbar no-print">
+      <label class="wt-chk"><input type="checkbox" id="genShowWt" checked> Show weights</label>
+      <label class="wt-chk"><input type="checkbox" id="genShowDet" checked> Show detail</label>
+      <button class="btn gold sm" id="genLink">&#128279; Get view-only link</button>
+      <button class="btn ghost sm" id="genPrint">&#128424; Print</button>
+      <button class="btn ghost sm" id="genPdf">&#8681; PDF</button>
+    </div>
+    <div class="block">
+      <div class="block-head"><h2>General Packing List</h2><span class="hint">this is the end product — untick “Show weights” for the soldier version</span></div>
+      <div class="pl-colhead" id="genColhead"><span class="h-name">Item</span><span class="h-q">Qty</span><span class="h-u">Unit kg</span><span class="h-l">Line</span></div>
+      <div id="generalList"></div>
+    </div>
+  </div>
+
+  <!-- ============ ESTABLISHMENT ============ -->
+  <div class="view" id="view-estab">
+    <div class="intro"><b>Every appointment and exactly what it carries</b> — in establishment order, with each load reconciled to the battalion matrix. Tap an appointment to see its full itemised breakdown. Use this to brief your superiors, or export a full PDF of every appointment.</div>
+    <div class="toolbar no-print">
+      <label style="font-size:11px;color:var(--stamp);text-transform:uppercase;letter-spacing:.05em;">Sort
+        <select id="ovSort" style="font-family:inherit;font-size:12px;padding:5px;border:1px solid var(--khaki-line);background:var(--panel);margin-left:6px;">
+          <option value="order">Military order</option><option value="heavy">Heaviest first</option><option value="light">Lightest first</option>
+        </select>
+      </label>
+      <label class="wt-chk"><input type="checkbox" id="ovShowWt" checked> Show weights</label>
+      <label class="wt-chk"><input type="checkbox" id="ovShowDet" checked> Show detail</label>
+      <button class="btn gold sm" id="ovExpand">Expand all</button>
+      <button class="btn gold sm" id="ovLink">&#128279; Get view-only link</button>
+      <button class="btn ghost sm" id="ovPrint">&#128424; Print</button>
+      <button class="btn ghost sm" id="ovPdf">&#8681; PDF — all appointments</button>
+    </div>
+    <div class="ov-stats" id="ovStats"></div>
+    <div id="estabHost"></div>
+  </div>
+
+  <footer>
+    <b>Master List</b> controls every item (weight, quantity, battery %, and who carries it). <b>General Packing List</b> is the common kit everyone packs. <b>By Establishment</b> shows and prints what each appointment carries. Batteries start at 100% (the issued cell fit — e.g. 6 × AA); step any up to 200%+ in the Master List for spares. Everything saves automatically; only a reset button restores the matrix. Confirm all weights against the current stores return before each serial.
+  </footer>
+</div>
+
+<div class="docview" id="docView"></div>
+
+<div class="modal-back" id="linkModal">
+  <div class="modal">
+    <h3>&#128279; Permanent link — one source, always current</h3>
+    <p>This is the <b>one link</b> you give everyone. It never changes. People who open it see the latest <b>published</b> packing list, read-only, like a doc — no PDF, no downloads. When you’ve made edits, press <b>⇪ Publish update</b> in the toolbar and re-drag the downloaded file onto Netlify; the link stays the same and everyone sees the new version.</p>
+    <div class="link-row"><input class="link-url" id="linkUrl" readonly><button class="btn gold sm" id="linkCopy">Copy</button></div>
+    <p id="linkLocalNote" style="display:none;color:var(--brick-dark);background:rgba(140,63,50,.08);border-left:3px solid var(--brick);padding:9px 11px;">⚠︎ One-time setup first: drag this file onto <b>app.netlify.com/drop</b> (10 seconds, signed in as juw914@gmail.com). After that the link above is live, and you edit + publish from that address. Until then, <b>Preview the shared view</b> shows exactly what people will see.</p>
+    <div class="modal-btns"><button class="btn gold sm" id="linkPreview">&#128065; Preview the shared view</button><button class="btn sm" id="linkOpen">Open in new tab</button><button class="btn brick sm" id="linkClose">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-back" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">Please confirm</h3>
+    <p id="confirmMsg"></p>
+    <div class="modal-btns"><button class="btn sm" id="confirmNo">Cancel</button><button class="btn brick sm" id="confirmYes">Yes</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const DATA={"ITEMS": {"Helmet": {"kg": 1.0, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Ballistic Goggles": {"kg": 0.5, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Uniform (No.4)": {"kg": 0.98, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Small Ziplock (Left Thigh Pocket)": {"kg": 0.165, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Black Socks": {"kg": 0.16, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Combat Boots": {"kg": 0.9, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Gloves (full-finger)": {"kg": 0.15, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "Knee/Elbow Guards": {"kg": 0.5, "cat": "Attire", "batt": false, "cells": "", "pctBatt": false}, "LBS Belt": {"kg": 1.15, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "LBS Vest": {"kg": 1.05, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "Soft Plate ×2": {"kg": 1.2, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "SOG (tied-down)": {"kg": 0.13, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "C-Tool (tied-down)": {"kg": 0.12, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "Torch Light w/ red filter": {"kg": 0.18, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "Whistle": {"kg": 0.02, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "Toggle Rope": {"kg": 0.2, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "1L Water Canteen (filled)": {"kg": 1.25, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "Earplugs": {"kg": 0.02, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "Comms Cord": {"kg": 0.05, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Insect Repellent": {"kg": 0.1, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Thermometer": {"kg": 0.03, "cat": "Outfield E-Pack", "batt": true, "cells": "1 × button", "pctBatt": false}, "Whiteboard Marker": {"kg": 0.01, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Black Tape": {"kg": 0.05, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Writing Material": {"kg": 0.1, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Set of Utensils": {"kg": 0.15, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Camo Cream w/ Mirror": {"kg": 0.1, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 0 — Ground Sheet": {"kg": 0.84, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 1 — Uniform": {"kg": 0.98, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 2 — Towel": {"kg": 0.26, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 3 — Admin": {"kg": 0.88, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 4 — Toiletries": {"kg": 0.4, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 5 — Accessories": {"kg": 0.431, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 6 — Mess Tin": {"kg": 0.35, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 7 — Sandals": {"kg": 0.59, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 8 — Sandbag": {"kg": 0.46, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 9 — RCK Kit": {"kg": 0.47, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Pack 10 — Gortex": {"kg": 0.7, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "ET Blade & Stick": {"kg": 1.2, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "3L Water Bag": {"kg": 3.11, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "1.5L Water Bottle ×2": {"kg": 3.06, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Hard Plate ×2": {"kg": 2.76, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "24H Combat Ration ×2": {"kg": 3.57, "cat": "Rations", "batt": false, "cells": "", "pctBatt": false}, "Oral Inflated Life Vest": {"kg": 0.9, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Ziplock Bag ×2": {"kg": 0.025, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "BFI Full Set": {"kg": 2.46, "cat": "PANTES & BFI", "batt": false, "cells": "", "pctBatt": false}, "TES Mount ×4": {"kg": 0.15, "cat": "PANTES & BFI", "batt": false, "cells": "", "pctBatt": false}, "Chocolate Bar ×4": {"kg": 0.34, "cat": "PANTES & BFI", "batt": false, "cells": "", "pctBatt": false}, "Gameboy Pouch": {"kg": 0.12, "cat": "PANTES & BFI", "batt": false, "cells": "", "pctBatt": false}, "Gameboy": {"kg": 0.15, "cat": "PANTES & BFI", "batt": false, "cells": "", "pctBatt": false}, "Field Pack": {"kg": 2.46, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Alice Pack": {"kg": 2.8, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Coord Map": {"kg": 0.01, "cat": "Commander Items", "batt": false, "cells": "", "pctBatt": false}, "SAR21": {"kg": 3.82, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "SAR21 LAD Batteries": {"kg": 0.024, "cat": "Weapons & SFT", "batt": true, "cells": "1 × AA", "pctBatt": true}, "SAR21 SFT": {"kg": 0.445, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "Prismatic Compass": {"kg": 0.15, "cat": "Commander Items", "batt": false, "cells": "", "pctBatt": false}, "Map w/ Map Case": {"kg": 0.1, "cat": "Commander Items", "batt": false, "cells": "", "pctBatt": false}, "Protractor": {"kg": 0.01, "cat": "Commander Items", "batt": false, "cells": "", "pctBatt": false}, "Commander Checklist": {"kg": 0.08, "cat": "Commander Items", "batt": false, "cells": "", "pctBatt": false}, "Pacer": {"kg": 0.05, "cat": "LBS / SBO 2", "batt": false, "cells": "", "pctBatt": false}, "PRC650": {"kg": 0.76, "cat": "Signals", "batt": false, "cells": "", "pctBatt": false}, "PRC650 Batteries": {"kg": 0.144, "cat": "Signals", "batt": true, "cells": "6 × AA", "pctBatt": true}, "NVG & Mount": {"kg": 1.04, "cat": "Optics", "batt": false, "cells": "", "pctBatt": false}, "NVG Batteries": {"kg": 0.024, "cat": "Optics", "batt": true, "cells": "1 × AA", "pctBatt": true}, "Assault Bag": {"kg": 0.82, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "Duplicate Sandbag Pack": {"kg": 0.46, "cat": "Field Pack", "batt": false, "cells": "", "pctBatt": false}, "PRC940": {"kg": 9.0, "cat": "Signals", "batt": false, "cells": "", "pctBatt": false}, "PRC940 Battery": {"kg": 3.04, "cat": "Signals", "batt": true, "cells": "2 × Rechargeable", "pctBatt": true}, "Dipole Set": {"kg": 1.36, "cat": "Signals", "batt": false, "cells": "", "pctBatt": false}, "M110": {"kg": 7.0, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "M110 Scope Batteries": {"kg": 0.003, "cat": "Weapons & SFT", "batt": true, "cells": "1 × CR2032", "pctBatt": true}, "M110 SFT": {"kg": 0.445, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "M110 Hog Saddle & Tripod": {"kg": 3.75, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "M110 Silencer": {"kg": 0.9, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "M110 KN252": {"kg": 0.79, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "KN252 Batteries": {"kg": 0.048, "cat": "Weapons & SFT", "batt": true, "cells": "2 × AA", "pctBatt": true}, "M110 RCK": {"kg": 1.13, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "UTWS": {"kg": 3.0, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "UTWS Batteries": {"kg": 0.35, "cat": "Weapons & SFT", "batt": true, "cells": "1 × UTWS", "pctBatt": true}, "Spare Barrel & Wallet": {"kg": 5.29, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "Binoculars": {"kg": 0.25, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "GPMG": {"kg": 11.4, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "GPMG Ammo Pouch": {"kg": 0.225, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "GPMG SFT": {"kg": 0.57, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "M203": {"kg": 4.9, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "M203 LAUNCHER SFT": {"kg": 0.71, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "LMG": {"kg": 4.3, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "LMG LAD Batteries": {"kg": 0.048, "cat": "Weapons & SFT", "batt": true, "cells": "2 × CR123", "pctBatt": true}, "LMG Scope Batteries": {"kg": 0.003, "cat": "Weapons & SFT", "batt": true, "cells": "1 × CR2032", "pctBatt": true}, "LMG SFT": {"kg": 0.37, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "Medic Bag & Stores w/ Stretcher": {"kg": 14.8, "cat": "Medic", "batt": false, "cells": "", "pctBatt": false}, "Forward Sensor System": {"kg": 2.33, "cat": "UOCE Sensors", "batt": false, "cells": "", "pctBatt": false}, "Section Ground Sheet": {"kg": 0.61, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Color Flags & Light Sticks": {"kg": 0.88, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Breaching Flag": {"kg": 0.09, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Engineer Gloves": {"kg": 0.14, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Wire Gloves": {"kg": 0.27, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Cover Litter": {"kg": 0.8, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Wire Cutter": {"kg": 0.32, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Parang w/ Pouch": {"kg": 0.685, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Dummy Claymore": {"kg": 1.67, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Tripflare": {"kg": 1.2, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Bangalore": {"kg": 4.7, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "MATADOR (Dummy/TES)": {"kg": 8.9, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Vine Cutter": {"kg": 0.27, "cat": "Section Stores", "batt": false, "cells": "", "pctBatt": false}, "Key Hole Sensor": {"kg": 0.43, "cat": "UOCE Sensors", "batt": false, "cells": "", "pctBatt": false}, "Round Corner Sensor": {"kg": 0.58, "cat": "UOCE Sensors", "batt": false, "cells": "", "pctBatt": false}, "Tactical Throwing Sensor": {"kg": 0.75, "cat": "UOCE Sensors", "batt": false, "cells": "", "pctBatt": false}, "Control Display System": {"kg": 1.67, "cat": "UOCE Sensors", "batt": false, "cells": "", "pctBatt": false}, "Snip It": {"kg": 2.77, "cat": "Heartlander Tools", "batt": false, "cells": "", "pctBatt": false}, "Crowbar": {"kg": 0.95, "cat": "Heartlander Tools", "batt": false, "cells": "", "pctBatt": false}, "Sledgehammer": {"kg": 0.43, "cat": "Heartlander Tools", "batt": false, "cells": "", "pctBatt": false}, "UO Ring w/ 8 Light Sticks": {"kg": 0.2, "cat": "Heartlander Tools", "batt": false, "cells": "", "pctBatt": false}, "Panel Marker w/ 6 x Tent Pins": {"kg": 1.05, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "Pair Of Marshalling Wands": {"kg": 0.8, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "Marshalling Wand Batteries": {"kg": 0.3, "cat": "TAG Stores", "batt": true, "cells": "2 × D Cell", "pctBatt": true}, "Pair Of Marshalling Gloves": {"kg": 0.11, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "Mallet": {"kg": 0.6, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "18 x Green Light Sticks": {"kg": 0.45, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "9 x IR Marker": {"kg": 0.45, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "IR Marker Batteries": {"kg": 0.405, "cat": "TAG Stores", "batt": true, "cells": "9 × 9V", "pctBatt": true}, "Kestrel WBGT Meter": {"kg": 0.8, "cat": "TAG Stores", "batt": false, "cells": "", "pctBatt": false}, "6 x Magazine of 30 (5.56mm)": {"kg": 2.215, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "2 x SFG 87": {"kg": 0.6, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "Grey Smoke Grenade": {"kg": 0.3, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "Red Smoke Grenade": {"kg": 0.3, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "Yellow Smoke Grenade": {"kg": 0.3, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "Phosphorous Smoke Grenade": {"kg": 0.3, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "2 x Cartridge Signal (Red)": {"kg": 0.02, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "2 x Cartridge Signal (Green)": {"kg": 0.02, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "2 x Cartridge Signal (Illum)": {"kg": 0.02, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "3 x Cartridge Signal (Red)": {"kg": 0.03, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "3 x Cartridge Signal (Green)": {"kg": 0.03, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "3 x Cartridge Signal (Illum)": {"kg": 0.03, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "Pen Gun": {"kg": 0.1, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "120 x 7.62mm": {"kg": 3.06, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "150 x 7.62mm": {"kg": 3.825, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "250 x 7.62mm": {"kg": 6.375, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "500 x 7.62mm": {"kg": 12.75, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "8 x 40mm HEDP rounds": {"kg": 1.92, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "4 x 40mm Illum rounds": {"kg": 1.12, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "4 x Hand-held Illum": {"kg": 2.4, "cat": "Ammunition & Pyro", "batt": false, "cells": "", "pctBatt": false}, "SAR21 Ammo Pouch": {"kg": 0.25, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "LMG Ammo Pouch": {"kg": 0.2, "cat": "Weapons & SFT", "batt": false, "cells": "", "pctBatt": false}, "RAC Card": {"kg": 0.02, "cat": "Outfield E-Pack", "batt": false, "cells": "", "pctBatt": false}}, "ROLES": [{"key": "OC", "name": "OC", "grp": "Company HQ", "load": 42.555, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "CSM", "name": "CSM", "grp": "Company HQ", "load": 42.555, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "OC_SIG", "name": "OC Signaller", "grp": "Company HQ", "load": 55.955, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "PRC940", "PRC940 Battery", "Dipole Set", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "PC", "name": "PC (Pl Comd)", "grp": "Platoon HQ", "load": 42.555, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "PS", "name": "PS (Pl Sgt)", "grp": "Platoon HQ", "load": 42.685, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "Pacer", "Commander Checklist", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "MEDIC", "name": "Medic", "grp": "Platoon HQ", "load": 55.127, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Medic Bag & Stores w/ Stretcher", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "PC_RUN", "name": "PC Runner", "grp": "Platoon HQ", "load": 40.327, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "SENSOR", "name": "Sensor Operator", "grp": "Platoon HQ", "load": 43.477, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Forward Sensor System", "Assault Bag", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "MG_CMD", "name": "MG Commander", "grp": "GPMG Detachment", "load": 43.705, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "Commander Checklist", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "Binoculars", "Assault Bag", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "MG_GUN", "name": "MG Gunner", "grp": "GPMG Detachment", "load": 51.281, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "UTWS", "UTWS Batteries", "GPMG", "GPMG Ammo Pouch", "GPMG SFT", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "MG_AST", "name": "MG Assistant", "grp": "GPMG Detachment", "load": 46.437, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Spare Barrel & Wallet", "Assault Bag", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "M110_CMD", "name": "M110 Commander", "grp": "M110 Detachment", "load": 51.574, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "Prismatic Compass", "Map w/ Map Case", "Protractor", "Commander Checklist", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "M110", "M110 Scope Batteries", "M110 SFT", "M110 Hog Saddle & Tripod", "M110 Silencer", "M110 RCK", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "M110_GUN", "name": "M110 Gunner", "grp": "M110 Detachment", "load": 50.924, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "M110", "M110 Scope Batteries", "M110 SFT", "M110 Hog Saddle & Tripod", "M110 Silencer", "M110 KN252", "KN252 Batteries", "M110 RCK", "Assault Bag", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "SC", "name": "Section Commander", "grp": "Rifle Section", "load": 49.695, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "Prismatic Compass", "Map w/ Map Case", "Protractor", "Commander Checklist", "PRC650", "PRC650 Batteries", "NVG & Mount", "NVG Batteries", "Assault Bag", "Color Flags & Light Sticks", "Breaching Flag", "Dummy Claymore", "Key Hole Sensor", "Panel Marker w/ 6 x Tent Pins", "Pair Of Marshalling Wands", "Marshalling Wand Batteries", "Pair Of Marshalling Gloves", "18 x Green Light Sticks", "Duplicate Sandbag Pack", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "M203_1", "name": "1 M203 (GL)", "grp": "Rifle Section", "load": 50.083, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "M203", "M203 LAUNCHER SFT", "SAR21 SFT", "Color Flags & Light Sticks", "Engineer Gloves", "Wire Gloves", "Wire Cutter", "Bangalore", "Round Corner Sensor", "Pair Of Marshalling Wands", "Marshalling Wand Batteries", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "LMG1", "name": "1 LMG", "grp": "Rifle Section", "load": 49.264, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "LMG", "LMG LAD Batteries", "LMG Scope Batteries", "LMG SFT", "Section Ground Sheet", "Engineer Gloves", "Snip It", "Crowbar", "Panel Marker w/ 6 x Tent Pins", "Pair Of Marshalling Wands", "Marshalling Wand Batteries", "Pair Of Marshalling Gloves", "Mallet", "9 x IR Marker", "IR Marker Batteries", "Vine Cutter", "Pacer", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "MAT1", "name": "1 MAT", "grp": "Rifle Section", "load": 50.947, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "MATADOR (Dummy/TES)", "Breaching Flag", "Round Corner Sensor", "Panel Marker w/ 6 x Tent Pins", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "M203_2", "name": "2 M203 (GL)", "grp": "Rifle Section", "load": 53.282, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "M203", "M203 LAUNCHER SFT", "SAR21 SFT", "PRC650", "PRC650 Batteries", "Assault Bag", "Parang w/ Pouch", "Dummy Claymore", "Tripflare", "Bangalore", "Tactical Throwing Sensor", "Duplicate Sandbag Pack", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "LMG2", "name": "2 LMG", "grp": "Rifle Section", "load": 49.173, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "LMG", "LMG LAD Batteries", "LMG Scope Batteries", "LMG SFT", "NVG & Mount", "NVG Batteries", "Wire Gloves", "Cover Litter", "Wire Cutter", "Control Display System", "Sledgehammer", "UO Ring w/ 8 Light Sticks", "Mallet", "Kestrel WBGT Meter", "Pair Of Marshalling Wands", "Marshalling Wand Batteries", "Pair Of Marshalling Gloves", "Panel Marker w/ 6 x Tent Pins", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}, {"key": "MAT2", "name": "2 MAT", "grp": "Rifle Section", "load": 51.931, "items": ["Helmet", "Ballistic Goggles", "Uniform (No.4)", "Black Socks", "Combat Boots", "Gloves (full-finger)", "Knee/Elbow Guards", "LBS Belt", "LBS Vest", "Soft Plate ×2", "SOG (tied-down)", "C-Tool (tied-down)", "Torch Light w/ red filter", "Whistle", "Toggle Rope", "1L Water Canteen (filled)", "Earplugs", "Comms Cord", "Insect Repellent", "Thermometer", "Whiteboard Marker", "Black Tape", "Writing Material", "Set of Utensils", "Camo Cream w/ Mirror", "Pack 0 — Ground Sheet", "Pack 1 — Uniform", "Pack 2 — Towel", "Pack 7 — Sandals", "Pack 8 — Sandbag", "Pack 9 — RCK Kit", "Pack 10 — Gortex", "ET Blade & Stick", "3L Water Bag", "1.5L Water Bottle ×2", "Hard Plate ×2", "24H Combat Ration ×2", "BFI Full Set", "TES Mount ×4", "Chocolate Bar ×4", "Gameboy Pouch", "Gameboy", "Field Pack", "Coord Map", "SAR21", "SAR21 LAD Batteries", "SAR21 SFT", "MATADOR (Dummy/TES)", "PRC650", "PRC650 Batteries", "Tactical Throwing Sensor", "Panel Marker w/ 6 x Tent Pins", "Pack 3 — Admin", "Pack 4 — Toiletries", "Pack 5 — Accessories", "Pack 6 — Mess Tin", "RAC Card", "Small Ziplock (Left Thigh Pocket)"]}], "GRP_ORDER": ["Company HQ", "Platoon HQ", "GPMG Detachment", "M110 Detachment", "Rifle Section"], "CAT_ORDER": ["Attire", "Field Pack", "LBS / SBO 2", "Outfield E-Pack", "Commander Items", "Section Stores", "TAG Stores", "Medic", "Weapons & SFT", "Ammunition & Pyro", "Optics", "Signals", "UOCE Sensors", "Heartlander Tools", "PANTES & BFI", "Rations", "Custom"], "DETAIL": {"Helmet": ["With 1 x rubber band", "Tricore mount", "Ranger Eye (With respective platoon icon)"], "Ballistic Goggles": ["With goggle socks"], "Uniform (No.4)": ["Long 4 / Hybrid", "SBO 2", "ID Tag (Worn)"], "Gloves (full-finger)": ["No holes, full finger gloves only, to be worn"], "Knee/Elbow Guards": ["Knee compulsory, elbow optional"], "Pack 0 — Ground Sheet": ["No holes / mud", "SAF issued only"], "Pack 1 — Uniform": ["1 x No. 4 Uniform Shirt", "— Rank", "— Vocation patch", "— Formation patch", "— Buttons intact", "— Visible name and “SINGAPORE”", "— No holes in clothing", "1 x No. 4 Uniform pants", "(L ziplock)"], "Pack 2 — Towel": ["1 x Individual layout card (Laminated)", "1 x Towel (Not wet/used)", "(M ziplock)"], "Pack 7 — Sandals": ["No mould / foul smell", "Strap and velcro working", "(L ziplock)"], "Pack 8 — Sandbag": ["3-layered telt range card (Clean - previous drawings erased)", "— Overlay 1 - Drawings (Black)", "— Overlay 2 - Enemies (Red)", "— Overlay 3 - Waterproofing", "4 x Arc of fire stick with ranger eye", "4 x Umbrella pins", "1 set of thin coloured markers (Red, blue, green, and black)", "255cm x 65cm shellscrape marking", "For Sect Comms, have IBOS checklist (except MM & MPAT, & Medic): Tripflare, Claymore, Shellscrape, Range card", "Section commander & 2IC: Duplicate sandbag pack"], "Pack 9 — RCK Kit": ["RCK pouch", "5-piece rod (4 long rod + eye piece)", "Chamber brush", "Gas cylinder brush", "Bore brush", "L-shaped tweezer", "Filled oil bottle", "Paint brush", "2 x 10 strips of flannelette", "Cleaning cloth"], "Pack 10 — Gortex": ["No foul smell / wet", "No fabric tear", "The zipper won’t get stuck"], "ET Blade & Stick": ["ET blade — Grind and oil, put in plastic bag", "ET stick — 1 thumb spacing at the top of the ET stick, no black tape, no rust, spray-painted black", "ET cover — No hole"], "3L Water Bag": ["No leakage"], "1.5L Water Bottle ×2": ["Recommended Pokka, wrapper removed, SAF black socks fitted over, clean water"], "Hard Plate ×2": ["2 x Hard plate", "1 x Hard plate w/ BFI"], "Assault Bag": ["Holders: MG Commander, MG Assistant, Sensor Ops, 3 x Signallers w/ Carabiner", "Assault pack passed to and carried by M110 team", "Section Commander, Section 2IC"], "Duplicate Sandbag Pack": ["Section commander & 2IC: Duplicate sandbag pack"], "SOG (tied-down)": ["1 x Tied down SOG (No rust)"], "C-Tool (tied-down)": ["1 x Tied down C-tool (No rust)"], "Torch Light w/ red filter": ["1 x Tied down torchlight w/ pinhole (Red filter)", "Torchlight filter pouch placed in the magazine compartment"], "Whistle": ["1 x Tied down whistle (No cracks)"], "Toggle Rope": ["1 x Toggle rope (Tied neatly)"], "1L Water Canteen (filled)": ["1 x 1L Green water canteen (Filled)"], "Earplugs": ["1 x Earplugs"], "Comms Cord": ["1 x Comms cord (New)"], "Insect Repellent": ["1 x Insect repellent (Bottle neck taped up)"], "Thermometer": ["1 x Thermometer (Serviceable)", "— Displays accurate temperature readings", "— Has battery"], "Whiteboard Marker": ["1 x Whiteboard marker (For erasing permanent marker)"], "Black Tape": ["1 x Black tape"], "Writing Material": ["1 x Writing materials (Notebook, pen and black marker)"], "Set of Utensils": ["1 set of utensils (S ziplock, no rust)"], "Camo Cream w/ Mirror": ["1 x Black and green camo cream taped with a mirror (S ziplock)"], "Prismatic Compass": ["Prismatic compass (Secured to LBS w/ 2m black string)", "— No bubbles", "— No cracks", "— All screws intact"], "Protractor": ["Protractor with green string (15cm)", "— No cracks", "— Not faded"], "Commander Checklist": ["Commander’s checklist card (PS and SC)", "— Strengths and stores written down"], "Map w/ Map Case": ["Topographic map", "— Right thigh pocket", "— Secured w/ black string", "3-layered telt", "— Overlay 1 - Waterproofing", "— Overlay 2 - Legend, Anchor and Checkpoints (Black)", "— Overlay 3 - Route of Advancement (Blue), Enemies (Red)", "— Clean - previous drawings erased", "— Ops plan drawn"], "Coord Map": ["Coord Map (Laminated and clean)"], "Section Ground Sheet": ["1 x Section groundsheet"], "Color Flags & Light Sticks": ["2 sets of 4 colour flags (R,G,B,Y)", "4 sets of 4 colour cyalume sticks (R,G,B,Y)"], "Breaching Flag": ["2 x Breaching flags"], "Engineer Gloves": ["2 pairs of engineer gloves"], "Wire Gloves": ["2 pairs of wire gloves"], "Cover Litter": ["1 x Cover litter"], "Wire Cutter": ["2 x Wire cutter"], "Parang w/ Pouch": ["1 x Parang"], "Dummy Claymore": ["2 x Claymore (Or PANTES)"], "Tripflare": ["1 x Tripflare"], "MATADOR (Dummy/TES)": ["2 x MATADOR (Mounted trial sling) (Or PANTES)"], "Bangalore": ["2 x Bangalore per platoon"], "Vine Cutter": ["2 x Vine cutter (For PL2 only)"], "Panel Marker w/ 6 x Tent Pins": ["6 x Panel markers", "36 x Tent pins"], "Pair Of Marshalling Wands": ["1 x Pair of marshalling wands", "1 x 9V Alkaline battery, w/ 200% battery"], "Marshalling Wand Batteries": ["1 x 9V Alkaline battery, w/ 200% battery"], "Pair Of Marshalling Gloves": ["1 x Pair of marshalling gloves"], "Mallet": ["2 x Mallet"], "18 x Green Light Sticks": ["18 x Green light sticks"], "9 x IR Marker": ["9 x IR marker"], "IR Marker Batteries": ["200% battery"], "Kestrel WBGT Meter": ["1 x Wind meter (Use WBGT)"], "Medic Bag & Stores w/ Stretcher": ["Medic Bag", "Stretcher", "Coloured Flags (R, G, B, Y) — 2 sets", "Cyalume Sticks (R, G, B, Y) — 2 sets", "CCP Flag (For COY Medic only)"], "SAR21": ["SAR21 VARIANT", "200% GP batteries for LAD", "Extra 100% of batteries for each day", "4 x Magazines", "BFA (Mounted)", "Ammo pouch (All weapon estab)", "PANTES SFT (All weapon estab)"], "SAR21 SFT": ["PANTES SFT (All weapon estab)"], "SAR21 LAD Batteries": ["200% GP batteries for LAD", "Extra 100% of batteries for each day"], "SAR21 Ammo Pouch": ["Ammo pouch (All weapon estab)"], "LMG": ["200% CR123 batteries for LAD", "200% CR2032 Scope Battery", "Extra 100% of batteries for each day"], "LMG LAD Batteries": ["200% CR123 batteries for LAD", "Extra 100% of batteries for each day"], "LMG Scope Batteries": ["200% CR2032 Scope Battery", "Extra 100% of batteries for each day"], "LMG SFT": ["PANTES SFT (All weapon estab)"], "GPMG": ["Battery inserted with spare batteries", "Spare Barrel", "Ammo Feeder", "MG Ammo Pouch", "Wallet", "Bino", "Sandbag", "Python belt", "Tripod"], "GPMG SFT": ["PANTES SFT (All weapon estab)"], "Spare Barrel & Wallet": ["Spare barrel, wallet in assistant’s SABI"], "Binoculars": ["Bino (MG team)"], "M110": ["Tripod", "Suppressor", "Scope battery", "Hog saddle", "Cleaning kit"], "M110 SFT": ["PANTES SFT (All weapon estab)"], "M110 Hog Saddle & Tripod": ["Tripod", "Hog saddle"], "M110 Silencer": ["Suppressor"], "M110 RCK": ["Cleaning kit"], "M110 Scope Batteries": ["Scope battery"], "M110 KN252": ["KN 252 — 1 x M110 COMD"], "KN252 Batteries": ["200% battery", "Extra 100% of batteries for each day"], "M203 LAUNCHER SFT": ["PANTES SFT (All weapon estab)"], "UTWS": ["UTWS — 3 x GPMG COMD"], "UTWS Batteries": ["1 x UTWS Battery (UTWS-specific cell — not AA)", "200% battery", "Extra 100% of batteries for each day"], "NVG & Mount": ["NVG", "1 x OC", "1 x 2IC", "1 x CSM", "3 x PC", "3 x PS", "9 x SC", "3 x GPMG COMD", "1 x MPAT COMD", "9 x LMG gunner", "2 x Spare"], "NVG Batteries": ["200% battery", "Extra 100% of batteries for each day"], "PRC650": ["PRC 650 (w/ 200% Energizer batteries, Total: 48)", "Extra 100% of batteries for each day", "1 x OC", "1 x 2IC", "1 x CSM", "3 x PC", "3 x PS", "9 x SC", "3 x MG COMD", "2 x MPAT COMD", "2 x M110 COMD", "1 x OC RUNNER", "2 x PC RUNNER", "9 x S2IC"], "PRC650 Batteries": ["200% Energizer batteries (Total: 48)", "Extra 100% of batteries for each day"], "PRC940": ["PRC 940 (w/ 200% Batteries, for signallers)", "Extra 100% of batteries for each day", "Tied down the antenna", "Headset", "Accessory bag: Long whip, Short whip, Stiff neck, Goose neck, Matching unit"], "PRC940 Battery": ["200% Batteries (for signallers)", "Extra 100% of batteries for each day"], "Dipole Set": ["Dipole bag:", "— Halyard (Roll of string with 2 weighted ends)", "— 2 sets of antenna wires (2x red, 2x yellow, 2x blue, 2x black)", "— Radio cable with positive/negative connector"], "Forward Sensor System": ["Forward Sensor System (FSS) (1 per platoon)", "No need for section CQB"], "Round Corner Sensor": ["Round Corner Sensor (RCS) (2 per section)"], "Tactical Throwing Sensor": ["Tactical Throwing Sensor (TTS) (2 per section)"], "Control Display System": ["Controller Display System (CDS) (2 per section)"], "Key Hole Sensor": ["Key Hole Sensor (KHS) (1 per section)"], "Snip It": ["Snip It (With mount and back)", "One per platoon", "Layout display only, not required to mount on soldiers"], "Crowbar": ["Crowbar (With mount and back)", "One per platoon"], "Sledgehammer": ["Retractable Hammer (With mount and back)", "One per platoon"], "UO Ring w/ 8 Light Sticks": ["UO ring w/ taped lightstick", "Layout display only"], "Chocolate Bar ×4": ["4 x Choco Bar secure w/ cable tie (Mounted and associated)"], "Gameboy": ["1 x Game Boy secure w/ black string (Individual)"], "Gameboy Pouch": ["Display unit pouch"], "BFI Full Set": ["1 x BFI w/ battery pack"], "TES Mount ×4": ["Harness mounts: LH, RH, FT, BT"], "24H Combat Ration ×2": ["24H combat rations", "1 x Green Main Pack", "1 x Accessory Pack A (Drink)", "1 x Accessory Pack B (Biscuit)"], "Pacer": ["1 x Tied down pacer (PS, 1st GL & 1st LMG)", "Checking that the counter increases without skipping", "Ensuring the counter can be reset to “0” using the knob"], "Ziplock Bag ×2": ["2 x L ziplock (RAI & trash)"], "LMG Ammo Pouch": ["Ammo pouch (All weapon estab)"], "GPMG Ammo Pouch": ["MG Ammo Pouch", "Ammo pouch (All weapon estab)"], "M203": ["4 x Magazines", "BFA (Mounted)", "Ammo pouch (All weapon estab)", "PANTES SFT (All weapon estab)"], "Pack 3 — Admin": ["1 x Admin pants & shirt (Logo visible)", "2 x Underwear (Dull colours)", "2 x No. 4 black socks (Rolled up)", "(M ziplock)"], "Pack 4 — Toiletries": ["1 x Full toilet paper roll (Core removed)", "1 x Fully filled powder bottle (Bottle neck fully taped)", "1 x Toothbrush with plastic cover", "1 x Non-expired toothpaste", "1 x Non-rusted shaver", "1 x Non-expired soap sponge", "(S ziplock)"], "Pack 5 — Accessories": ["(All plastic wraps removed other than sewing kit, S ziplock)", "4 x AA-sized Energizer or GP batteries only (Taped up)", "1 x Garters", "1 x Bootlace", "1 x Working lighter (Body black-taped)", "1 x Unused black tape", "1 x Kiwi & clean brush", "1 x Sewing kit set"], "Pack 6 — Mess Tin": ["1 x Green mug black-taped to mess tin", "Clean, free of soot/residue", "(M ziplock)"], "RAC Card": ["1 x RAC card (Laminated)"], "Small Ziplock (Left Thigh Pocket)": ["2 x FAD (No DUFF and training)", "1 x Tourniquet", "Casualty Card (To be filled up properly):", "— R/Name", "— Allergies", "— Blood Type", "— Unit", "— NRIC"], "Field Pack": ["Standard issue field pack — 2.46 kg empty"], "Alice Pack": ["If issued Alice pack instead — 2.8 kg empty"]}};
+const CAT_ORDER=DATA.CAT_ORDER;
+const LB=2.20462,STORE_KEY='load_master_v13';
+const BOOT_DELTA=null;/*__BOOT__*/   // the published state baked into this copy — replaced by “Publish update”
+let collapsedCats=new Set(),hideDetail=false;
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+function fmt(n){return (Math.round(n*1000)/1000).toFixed(2);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500);}
+const ROLE_BY_KEY={};DATA.ROLES.forEach(r=>ROLE_BY_KEY[r.key]=r);
+const NROLE=DATA.ROLES.length;
+
+/* ---------- SINGLE SOURCE OF TRUTH ---------- */
+let items={},assign={},order=[],cfg={unit:'',exercise:'',date:''};
+function buildDefaults(){
+  items={};assign={};order=[];
+  Object.keys(DATA.ITEMS).forEach(n=>{const m=DATA.ITEMS[n];
+    items[n]={name:n,cat:m.cat,kg:m.kg,qty:1,batt:!!(m.batt||m.cells),cells:m.cells||'',pctBatt:!!m.pctBatt,pct:100,struck:false,custom:false,pdfD:true,pdfW:true};
+    assign[n]=[];});
+  DATA.ROLES.forEach(r=>r.items.forEach(n=>{if(assign[n]&&!assign[n].includes(r.key))assign[n].push(r.key);}));
+  rebuildOrder();
+}
+function rebuildOrder(){order=[];CAT_ORDER.forEach(c=>{Object.keys(items).forEach(n=>{if(items[n].cat===c)order.push(n);});});
+  Object.keys(items).forEach(n=>{if(!order.includes(n))order.push(n);});}
+function effKg(n){const it=items[n];return it.pctBatt?it.kg*(it.pct/100):it.kg;}   // it.kg stores the 100% base (100% = the listed cell count)
+function carriedBy(n){return assign[n]?assign[n].length:0;}
+function isGeneral(n){return !items[n].struck && carriedBy(n)===NROLE;}
+function roleItems(rk){return order.filter(n=>!items[n].struck&&assign[n]&&assign[n].includes(rk));}
+function roleTotal(rk){return roleItems(rk).reduce((s,n)=>s+effKg(n)*items[n].qty,0);}
+function battTag(n){const it=items[n];if(!it.batt)return '';
+  let label=it.cells||'BATT';
+  if(it.pctBatt){label=it.cells?(cellsAtPct(it.cells,it.pct)+' · '+it.pct+'%'):(it.pct+'%');}
+  return ` <span class="di-batt">${label}</span>`;}
+function cellsAtPct(cells,pct){if(!cells)return pct+'%';
+  const m=cells.match(/^([\d.]+)\s*[×x]\s*(.+)$/);
+  if(m){let n=parseFloat(m[1])*(pct/100);n=Math.round(n*100)/100;return n+' × '+m[2];}
+  return cells;}
+
+/* category select */
+(function(){const sel=$('#acCat');CAT_ORDER.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});sel.value='Custom';})();
+
+/* ============ MASTER ============ */
+function renderMaster(filter){
+  const f=(filter!=null?filter:$('#mSearch').value||'').trim().toLowerCase();
+  const wrap=$('#masterList');const openSet=new Set([...wrap.querySelectorAll('.m-row.expanded')].map(e=>e.dataset.name));
+  wrap.innerHTML='';let shown=0;
+  CAT_ORDER.forEach(c=>{
+    const names=order.filter(n=>items[n].cat===c&&(!f||n.toLowerCase().includes(f)));
+    if(!names.length)return;
+    const struck=names.filter(n=>items[n].struck).length;
+    const cat=document.createElement('div');cat.className='m-cat'+((collapsedCats.has(c)&&!f)?' collapsed':'');cat.dataset.cat=c;
+    const gh=document.createElement('div');gh.className='gh';gh.innerHTML=`<span class="gh-caret">&#9656;</span><h4>${c}</h4><span class="gsum">${names.length} items${struck?` · ${struck} struck-off`:''}</span>`;
+    gh.onclick=()=>{if(collapsedCats.has(c))collapsedCats.delete(c);else collapsedCats.add(c);cat.classList.toggle('collapsed');};
+    cat.appendChild(gh);
+    const body=document.createElement('div');body.className='m-cat-body';
+    names.forEach(n=>body.appendChild(masterRow(n,openSet.has(n))));
+    cat.appendChild(body);wrap.appendChild(cat);shown+=names.length;
+  });
+  if(!shown)wrap.innerHTML='<div class="edit-hint">No items match your search.</div>';
+  const struckTot=order.filter(n=>items[n].struck).length;
+  $('#mCount').textContent=order.length+' items total'+(struckTot?` · ${struckTot} struck-off (kept, not deleted)`:'');
+}
+function masterRow(n,expanded){
+  const it=items[n];const row=document.createElement('div');row.className='m-row'+(it.struck?' struck':'')+(expanded?' expanded':'');row.dataset.name=n;
+  const top=document.createElement('div');top.className='m-top';
+  const name=document.createElement('div');name.className='m-name';
+  const nameInp=document.createElement('input');nameInp.className='name-edit'+(it.struck?' struck':'');nameInp.value=n;nameInp.title='Edit item name';
+  nameInp.onchange=()=>{const nn=nameInp.value.trim();if(nn&&nn!==n){if(renameItem(n,nn))renderMaster();else nameInp.value=n;}};
+  name.appendChild(nameInp);
+  if(it.batt){const holder=document.createElement('span');holder.innerHTML=battTag(n).trim();if(holder.firstChild)name.appendChild(holder.firstChild);}
+  if(it.struck){const kb=document.createElement('span');kb.className='m-kept';kb.textContent='struck off — still on the list · tap Restore to bring it back';name.appendChild(kb);}
+  const wc=document.createElement('div');wc.className='ctrl';wc.innerHTML='<span class="lbl">Wt kg</span>';
+  wc.appendChild(stepper('',effKg(n),0.05,0,v=>{ if(it.pctBatt){it.kg=v/(it.pct/100);}else{it.kg=v;} save();updateDerived();}));
+  const qc=document.createElement('div');qc.className='ctrl';qc.innerHTML='<span class="lbl">Qty</span>';
+  qc.appendChild(stepper('q',it.qty,1,0,v=>{it.qty=v;save();updateDerived();}));
+  // battery % toggle
+  if(it.pctBatt){const pc=document.createElement('div');pc.className='ctrl';pc.innerHTML='<span class="lbl">Batt fit</span>';
+    const st=document.createElement('div');st.className='stepper';
+    const mi=document.createElement('button');mi.textContent='−';const inp=document.createElement('input');inp.value=it.pct+'%';inp.readOnly=true;inp.style.width='52px';
+    const plb=document.createElement('button');plb.textContent='+';
+    mi.onclick=()=>{it.pct=Math.max(100,it.pct-100);save();renderMaster();updateDerived();};
+    plb.onclick=()=>{it.pct=it.pct+100;save();renderMaster();updateDerived();};
+    st.append(mi,inp,plb);pc.appendChild(st);
+    top.appendChild(name);top.appendChild(wc);top.appendChild(qc);top.appendChild(pc);
+  } else {top.appendChild(name);top.appendChild(wc);top.appendChild(qc);}
+  // battery cells edit (for any battery)
+  if(it.batt){const bc=document.createElement('div');bc.className='ctrl';const bi=document.createElement('input');bi.className='batt-input';bi.value=it.cells;bi.placeholder='2×AA';
+    bi.onchange=()=>{it.cells=bi.value.trim();save();renderMaster();updateDerived();};bc.appendChild(bi);top.appendChild(bc);}
+  const cnt=carriedBy(n);const chip=document.createElement('button');chip.className='assign-chip'+(cnt===NROLE?' all':'');chip.textContent=`carried by ${cnt}`;chip.title='Tap to set which appointments carry this';chip.onclick=()=>row.classList.toggle('expanded');
+  const rst=document.createElement('button');rst.className='m-reset';rst.innerHTML='&#8634; Reset';rst.title='Reset this one item to its original Masterlist state — weight, qty, battery, detail lines (brings back deleted/struck lines), who carries it. Other items untouched.';
+  rst.onclick=()=>resetItem(n);
+  const x=document.createElement('button');x.className='m-strike'+(it.struck?' restore':'');x.innerHTML=it.struck?'&#8635; Restore':'&#10007; Strike&nbsp;off';x.title=it.struck?'This item is struck off — tap to bring it back':'Strike this item off (it stays on the list, crossed out, and drops out of the weight total)';
+  x.onclick=()=>{it.struck=!it.struck;save();renderMaster();updateDerived();toast(it.struck?'“'+n+'” struck off — tap Restore to bring it back':'“'+n+'” restored');};
+  top.appendChild(chip);top.appendChild(rst);top.appendChild(x);row.appendChild(top);
+
+  // ---- INLINE DETAIL (always visible, editable, google-docs style) ----
+  const dsec=document.createElement('div');dsec.className='m-detail';
+  const dlist=document.createElement('div');dlist.className='dl-list';
+  function focusLine(i){const ins=dlist.querySelectorAll('.dl-input');if(ins[i]){ins[i].focus();ins[i].setSelectionRange(ins[i].value.length,ins[i].value.length);}}
+  function autosize(inp){inp.style.height='auto';inp.style.height=(inp.scrollHeight)+'px';}
+  function ensure(){if(!detailMap[n])detailMap[n]=[];detailMap[n]=normArr(detailMap[n]);return detailMap[n];}
+  function refreshDetail(){
+    dlist.innerHTML='';const arr=normArr(detailMap[n]);
+    arr.forEach((line,i)=>{
+      const r=document.createElement('div');r.className='dl-line'+(line.s?' struck':'');
+      const b=document.createElement('span');b.className='dl-bullet';b.textContent=line.s?'✗':'–';
+      const inp=document.createElement('textarea');inp.className='dl-input'+(line.s?' struck':'');inp.rows=1;inp.value=line.t;inp.placeholder='Type detail…';
+      inp.oninput=()=>{ensure()[i].t=inp.value;autosize(inp);};
+      inp.onchange=()=>{ensure()[i].t=inp.value;save();updateDerived();};
+      inp.onkeydown=e=>{
+        if(e.key==='Enter'){e.preventDefault();const a=ensure();a[i].t=inp.value;a.splice(i+1,0,{t:'',s:false});save();refreshDetail();updateDerived();focusLine(i+1);}
+        else if(e.key==='Backspace'&&inp.value===''&&arr.length>1){e.preventDefault();const a=ensure();a.splice(i,1);save();refreshDetail();updateDerived();focusLine(Math.max(0,i-1));}
+      };
+      const sk=document.createElement('button');sk.className='dl-strike'+(line.s?' on':'');sk.innerHTML=line.s?'&#8635;':'&#10007;';sk.title=line.s?'This line is struck off — tap to bring it back':'Strike off just this line (it stays, crossed out)';
+      sk.onclick=()=>{const a=ensure();a[i].s=!a[i].s;save();refreshDetail();updateDerived();};
+      const del=document.createElement('button');del.className='dl-del';del.innerHTML='&#128465;';del.title='Delete this line permanently';
+      del.onclick=()=>{const a=ensure();a.splice(i,1);if(!a.length)delete detailMap[n];save();refreshDetail();updateDerived();};
+      r.append(b,inp,sk,del);dlist.appendChild(r);requestAnimationFrame(()=>autosize(inp));
+    });
+    if(!arr.length){const em=document.createElement('div');em.className='dl-empty';em.textContent='No detail for this item — press “+ add detail line” to add one.';dlist.appendChild(em);}
+  }
+  const addBtn=document.createElement('button');addBtn.className='dl-add';addBtn.textContent='+ add detail line';
+  addBtn.onclick=()=>{const a=ensure();a.push({t:'',s:false});save();refreshDetail();updateDerived();focusLine(a.length-1);};
+  refreshDetail();dsec.append(dlist,addBtn);row.appendChild(dsec);
+
+  // ---- assign panel (who carries it) ----
+  const panel=document.createElement('div');panel.className='assign-panel';
+  const whoHead=document.createElement('div');whoHead.className='who-head';whoHead.textContent='Who carries it';panel.appendChild(whoHead);
+  const quick=document.createElement('div');quick.className='assign-quick';
+  const bMat=document.createElement('button');bMat.textContent='Matrix default';bMat.onclick=()=>{assign[n]=DATA.ROLES.filter(r=>r.items.includes(n)).map(r=>r.key);save();renderMaster();updateDerived();};
+  const bAll=document.createElement('button');bAll.textContent='All';bAll.onclick=()=>{assign[n]=DATA.ROLES.map(r=>r.key);save();renderMaster();updateDerived();};
+  const bNone=document.createElement('button');bNone.textContent='None';bNone.onclick=()=>{assign[n]=[];save();renderMaster();updateDerived();};
+  quick.append(bMat,bAll,bNone);panel.appendChild(quick);
+  DATA.GRP_ORDER.forEach(grp=>{const members=DATA.ROLES.filter(r=>r.grp===grp);
+    const g=document.createElement('div');g.className='assign-grp';g.innerHTML=`<div class="agt">${grp}</div>`;
+    const tr=document.createElement('div');tr.className='toggle-row';
+    members.forEach(r=>{const on=assign[n]&&assign[n].includes(r.key);const t=document.createElement('div');t.className='toggle'+(on?' on':'');t.textContent=r.name;
+      t.onclick=()=>{if(assign[n].includes(r.key))assign[n]=assign[n].filter(k=>k!==r.key);else assign[n].push(r.key);save();t.classList.toggle('on');chip.textContent=`carried by ${carriedBy(n)}`;chip.classList.toggle('all',carriedBy(n)===NROLE);updateDerived();};
+      tr.appendChild(t);});g.appendChild(tr);panel.appendChild(g);});
+  row.appendChild(panel);return row;
+}
+function stepper(cls,val,step,min,onset){
+  const s=document.createElement('div');s.className='stepper'+(cls?' '+cls:'');
+  const mi=document.createElement('button');mi.textContent='−';const inp=document.createElement('input');inp.type='number';inp.step=step;inp.value=+(+val).toFixed(3);if(min!=null)inp.min=min;
+  const pl=document.createElement('button');pl.textContent='+';
+  mi.onclick=()=>{let v=(+inp.value)-step;if(min!=null)v=Math.max(min,v);v=+v.toFixed(3);inp.value=v;onset(v);};
+  pl.onclick=()=>{let v=+((+inp.value)+step).toFixed(3);inp.value=v;onset(v);};
+  inp.onchange=()=>{let v=parseFloat(inp.value);if(isNaN(v))v=min!=null?min:0;if(min!=null)v=Math.max(min,v);inp.value=v;onset(v);};
+  s.append(mi,inp,pl);return s;
+}
+function addItem(){const n=$('#acName').value.trim();let kg=parseFloat($('#acKg').value);const bt=$('#acBatt').value.trim();const cat=$('#acCat').value;
+  if(!n){toast('Enter item name');return;}if(items[n]){toast('Item already exists');return;}if(isNaN(kg))kg=0;
+  items[n]={name:n,cat,kg,qty:1,batt:!!bt,cells:bt,pctBatt:false,pct:100,struck:false,custom:true,pdfD:true,pdfW:true};assign[n]=[];rebuildOrder();
+  $('#acName').value='';$('#acKg').value='';$('#acBatt').value='';save();renderMaster();toast(n+' added — tick who carries it');}
+
+/* ============ GENERAL LIST ============ */
+let showWeights=true, showDetail=true;
+function normLine(x){return (typeof x==='string')?{t:x,s:false}:{t:String((x&&x.t)||''),s:!!(x&&x.s)};}   // every detail line is {t:text, s:struck-off}
+function normArr(a){return (a||[]).map(normLine);}
+function cloneDetail(src){const o={};Object.keys(src||{}).forEach(k=>{o[k]=normArr(src[k]);});return o;}
+let detailMap=cloneDetail(DATA.DETAIL);
+function detailLines(n){return normArr(detailMap[n]).filter(l=>l.t&&l.t.trim());}
+function detailHtml(n){if(!showDetail||items[n].struck||items[n].pdfD===false)return '';
+  const lines=detailLines(n).filter(l=>!l.s);if(!lines.length)return '';   // struck-off lines are hidden from the viewer
+  return '<div class="pl-detail">'+lines.map(l=>`<div>${esc(l.t)}</div>`).join('')+'</div>';}
+function showW(n){return showWeights && items[n].pdfW!==false;}
+function resetItem(n){const it=items[n];const m=DATA.ITEMS[n];
+  if(m){it.cat=m.cat;it.kg=m.kg;it.qty=1;it.batt=!!(m.batt||m.cells);it.cells=m.cells||'';it.pctBatt=!!m.pctBatt;it.pct=100;it.struck=false;it.pdfD=true;it.pdfW=true;
+    assign[n]=DATA.ROLES.filter(r=>r.items.includes(n)).map(r=>r.key);
+    if(DATA.DETAIL&&DATA.DETAIL[n])detailMap[n]=normArr(DATA.DETAIL[n]);else delete detailMap[n];
+  }else{it.qty=1;it.struck=false;it.pdfD=true;it.pdfW=true;}   // custom / renamed item — no baseline to pull from
+  save();renderMaster();updateDerived();toast('“'+n+'” reset to Masterlist default');}
+function clearAllStrikes(){let c=0;Object.keys(items).forEach(n=>{if(items[n].struck){items[n].struck=false;c++;}});
+  save();renderMaster();updateDerived();toast(c?c+(c===1?' strike-off cleared':' strike-offs cleared'):'Nothing is struck off');}
+function renameItem(oldN,newN){newN=(newN||'').trim();
+  if(!newN||newN===oldN)return false;
+  if(items[newN]){toast('That name already exists');return false;}
+  items[newN]=items[oldN];items[newN].name=newN;delete items[oldN];
+  assign[newN]=assign[oldN]||[];delete assign[oldN];
+  if(detailMap[oldN]){detailMap[newN]=detailMap[oldN];delete detailMap[oldN];}
+  rebuildOrder();save();updateDerived();return true;}
+function detailEl(n){const h=detailHtml(n);if(!h)return null;const d=document.createElement('div');d.innerHTML=h;return d.firstChild;}
+function plItemRow(n){const it=items[n];const row=document.createElement('div');row.className='pl-row'+(it.struck?' struck':'');
+  const strikeNote=it.struck?' <span class="strike-note">struck</span>':'';
+  let h=`<span class="pl-name">${n}${battTag(n)}${strikeNote}</span><span class="pl-q">×${it.qty}</span>`;
+  if(showWeights){const w=showW(n);h+=`<span class="pl-u">${w?fmt(effKg(n)):''}</span><span class="pl-l">${it.struck?'—':(w?fmt(effKg(n)*it.qty)+' kg':'')}</span>`;}
+  row.innerHTML=h;return row;}
+function colhead(){return showWeights
+  ?'<span class="h-name">Item</span><span class="h-q">Qty</span><span class="h-u">Unit kg</span><span class="h-l">Line</span>'
+  :'<span class="h-name">Item</span><span class="h-q">Qty</span>';}
+function renderGeneral(){
+  const names=order.filter(n=>!items[n].struck);   // the FULL source list — everything to bring (struck-off hidden)
+  const wrap=$('#generalList');wrap.innerHTML='';
+  $('#genColhead').innerHTML=colhead();
+  const groups={};names.forEach(n=>{(groups[items[n].cat]=groups[items[n].cat]||[]).push(n);});
+  let tot=0;
+  CAT_ORDER.forEach(c=>{if(!groups[c])return;
+    const gsum=groups[c].filter(n=>!items[n].struck).reduce((s,n)=>s+effKg(n)*items[n].qty,0);tot+=gsum;
+    const gh=document.createElement('div');gh.className='pl-gh';gh.innerHTML=`<h4>${c}</h4><span class="gsum">${showWeights?fmt(gsum)+' kg':''}</span>`;wrap.appendChild(gh);
+    groups[c].forEach(n=>{wrap.appendChild(plItemRow(n));const de=detailEl(n);if(de)wrap.appendChild(de);});});
+  if(!names.length)wrap.innerHTML='<div class="edit-hint">Every item is struck off — restore some in the Master List.</div>';
+  else if(showWeights){const foot=document.createElement('div');foot.className='pl-foot';foot.innerHTML=`<span class="lbl">Total — full list (${names.length} items)</span><span class="tot">${fmt(tot)} kg</span>`;wrap.appendChild(foot);}
+}
+
+/* ============ ESTABLISHMENT ============ */
+function renderEstab(){
+  const rows=DATA.ROLES.map(r=>({r,t:roleTotal(r.key)}));
+  const max=Math.max(...rows.map(x=>x.t)),min=Math.min(...rows.map(x=>x.t)),avg=rows.reduce((s,x)=>s+x.t,0)/rows.length;
+  const H=rows.find(x=>x.t===max),L=rows.find(x=>x.t===min);
+  $('#ovStats').innerHTML=`
+    <div class="stat"><div class="k">Appointments</div><div class="v">${rows.length}</div><div class="s">tracked</div></div>
+    <div class="stat"><div class="k">Heaviest</div><div class="v">${fmt(max)}<small> kg</small></div><div class="s">${H.r.name}</div></div>
+    <div class="stat"><div class="k">Lightest</div><div class="v">${fmt(min)}<small> kg</small></div><div class="s">${L.r.name}</div></div>
+    <div class="stat"><div class="k">Average</div><div class="v">${fmt(avg)}<small> kg</small></div><div class="s">spread ${fmt(max-min)} kg</div></div>`;
+  const sort=$('#ovSort').value;const openKeys=new Set([...$$('#estabHost .estab.open')].map(e=>e.dataset.key));
+  const host=$('#estabHost');host.innerHTML='';
+  function el(x){const pct=Math.round(x.t/max*100),heavy=x.t>=avg+(max-avg)*0.5;
+    const e=document.createElement('div');e.className='estab'+(openKeys.has(x.r.key)?' open':'');e.dataset.key=x.r.key;
+    e.innerHTML=`<div class="estab-head"><span class="estab-name">${x.r.name}</span><span class="estab-bar-wrap"><span class="estab-bar-track"><span class="estab-bar${heavy?' heavy':''}" style="width:${pct}%"></span></span></span><span class="estab-kg">${fmt(x.t)}<small> kg</small></span><span class="estab-caret">&#9654;</span></div><div class="estab-detail"></div>`;
+    e.querySelector('.estab-head').onclick=()=>{e.classList.toggle('open');if(e.classList.contains('open'))fillEstab(e,x.r);};
+    if(e.classList.contains('open'))fillEstab(e,x.r);return e;}
+  if(sort==='order'){DATA.GRP_ORDER.forEach(grp=>{const mem=rows.filter(x=>x.r.grp===grp);if(!mem.length)return;
+    const gt=document.createElement('div');gt.className='grp-title';gt.textContent=grp;host.appendChild(gt);
+    const list=document.createElement('div');list.className='estab-list';mem.forEach(x=>list.appendChild(el(x)));host.appendChild(list);});
+  }else{rows.sort((a,b)=>sort==='heavy'?b.t-a.t:a.t-b.t);const list=document.createElement('div');list.className='estab-list';rows.forEach(x=>list.appendChild(el(x)));host.appendChild(list);}
+}
+function roleItemsDisp(rk){return order.filter(n=>!items[n].struck&&assign[n]&&assign[n].includes(rk));}  // struck-off items hidden from viewer
+function fillEstab(e,role){
+  const box=e.querySelector('.estab-detail');const names=roleItemsDisp(role.key);const groups={};
+  names.forEach(n=>{(groups[items[n].cat]=groups[items[n].cat]||[]).push(n);});
+  let html='<div class="pl-colhead">'+colhead()+'</div>';
+  CAT_ORDER.forEach(c=>{if(!groups[c])return;const gsum=groups[c].filter(n=>!items[n].struck).reduce((s,n)=>s+effKg(n)*items[n].qty,0);
+    html+=`<div class="pl-gh"><h4>${c}</h4><span class="gsum">${showWeights?fmt(gsum)+' kg':''}</span></div>`;
+    groups[c].forEach(n=>{const it=items[n];const sn=it.struck?' <span class="strike-note">struck</span>':'';
+      html+=`<div class="pl-row${it.struck?' struck':''}"><span class="pl-name">${n}${battTag(n)}${sn}</span><span class="pl-q">×${it.qty}</span>`;
+      if(showWeights){const w=showW(n);html+=`<span class="pl-u">${w?fmt(effKg(n)):''}</span><span class="pl-l">${it.struck?'—':(w?fmt(effKg(n)*it.qty)+' kg':'')}</span>`;}
+      html+=`</div>`+detailHtml(n);});});
+  const tot=roleTotal(role.key);
+  html+=`<div class="pl-foot"><span class="lbl">Total — ${role.name}${showWeights?' (ref '+fmt(role.load)+' kg)':''}</span><span class="tot">${showWeights?fmt(tot)+' kg':''}</span></div>`;
+  box.innerHTML=html;
+}
+function updateDerived(){if($('#view-general').classList.contains('active'))renderGeneral();if($('#view-estab').classList.contains('active'))renderEstab();}
+
+/* ---------- SHARE LINK (view-only, no backend) ---------- */
+function b64e(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function b64d(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}
+function defAssignKey(n){return DATA.ROLES.filter(r=>r.items.includes(n)).map(r=>r.key).sort().join(',');}
+function stateDelta(){
+  const d={i:{},a:{},d2:{},c:[],cfg:cfg};
+  Object.keys(items).forEach(n=>{const it=items[n];const m=DATA.ITEMS[n];
+    if(!m){d.c.push({n:n,cat:it.cat,kg:it.kg,q:it.qty,b:it.batt?1:0,ce:it.cells||'',pb:it.pctBatt?1:0,p:it.pct,s:it.struck?1:0,pd:it.pdfD===false?0:1,pw:it.pdfW===false?0:1});return;}
+    const ch={};
+    if(it.kg!==m.kg)ch.kg=it.kg;
+    if(it.qty!==1)ch.q=it.qty;
+    if(it.pct!==100)ch.p=it.pct;
+    if((it.cells||'')!==(m.cells||''))ch.ce=it.cells;
+    if(it.struck)ch.s=1;
+    if(it.pdfD===false)ch.pd=0;
+    if(it.pdfW===false)ch.pw=0;
+    if(Object.keys(ch).length)d.i[n]=ch;
+    if((assign[n]||[]).slice().sort().join(',')!==defAssignKey(n))d.a[n]=assign[n];
+  });
+  Object.keys(detailMap).forEach(n=>{
+    const def=JSON.stringify(normArr(DATA.DETAIL&&DATA.DETAIL[n]));
+    if(JSON.stringify(normArr(detailMap[n]))!==def)d.d2[n]=normArr(detailMap[n]);});
+  Object.keys(DATA.DETAIL||{}).forEach(n=>{if(!(n in detailMap))d.d2[n]=[];});
+  return d;
+}
+function applyDelta(d){
+  buildDefaults();detailMap=cloneDetail(DATA.DETAIL);
+  if(d.cfg)cfg=Object.assign({unit:'',exercise:'',date:''},d.cfg);
+  (d.c||[]).forEach(c=>{items[c.n]={name:c.n,cat:c.cat,kg:c.kg,qty:c.q,batt:!!c.b,cells:c.ce||'',pctBatt:!!c.pb,pct:c.p||100,struck:!!c.s,custom:true,pdfD:c.pd!==0,pdfW:c.pw!==0};assign[c.n]=[];});
+  Object.keys(d.i||{}).forEach(n=>{if(!items[n])return;const ch=d.i[n],it=items[n];
+    if('kg'in ch)it.kg=ch.kg;if('q'in ch)it.qty=ch.q;if('p'in ch)it.pct=ch.p;if('ce'in ch)it.cells=ch.ce;
+    if(ch.s)it.struck=true;if(ch.pd===0)it.pdfD=false;if(ch.pw===0)it.pdfW=false;});
+  Object.keys(d.a||{}).forEach(n=>{assign[n]=d.a[n];});
+  Object.keys(d.d2||{}).forEach(n=>{detailMap[n]=normArr(d.d2[n]);});
+  rebuildOrder();
+}
+const SHARE_BASE='https://field-load-packing-list.netlify.app/';   // the tool’s home on the web — used whenever this copy isn’t opened from a real web address
+function isHosted(){return /^https?:$/.test(location.protocol);}
+function permLink(){return isHosted()?(location.origin+location.pathname):SHARE_BASE;}
+function showLinkModal(){
+  $('#linkUrl').value=permLink();
+  $('#linkLocalNote').style.display=isHosted()?'none':'block';
+  $('#linkModal').classList.add('show');
+  setTimeout(()=>{const i=$('#linkUrl');i.focus();i.select();},50);
+}
+async function publishUpdate(){
+  if(!isHosted()){confirmModal('Publishing works from the online version. One-time setup: drag this file onto app.netlify.com/drop (signed in as juw914@gmail.com), then open '+SHARE_BASE+' and edit there. After that, this button downloads the updated site file for you to re-drag — the link never changes.','OK',null);return;}
+  try{
+    const res=await fetch(location.pathname,{cache:'no-store'});
+    let src=await res.text();
+    const payload=b64e(JSON.stringify(stateDelta()));
+    src=src.replace(/const BOOT_DELTA=[^;]*;\/\*__BOOT__\*\//,'const BOOT_DELTA="'+payload+'";/*__BOOT__*/');
+    const blob=new Blob([src],{type:'text/html'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='index.html';a.click();URL.revokeObjectURL(a.href);
+    confirmModal('Updated index.html downloaded. Drag it onto your Netlify deploys page (app.netlify.com → field-load-packing-list → Deploys) and the permanent link shows the new version to everyone. The link itself never changes.','Got it',null);
+  }catch(e){toast('Could not build the update — use Save file instead');}
+}
+
+/* ---------- VIEW-ONLY DOCUMENT (rendered from state) ---------- */
+function docItems(names){
+  names=names.filter(n=>!items[n].struck);   // struck-off items do not appear in the viewer
+  const groups={};names.forEach(n=>{(groups[items[n].cat]=groups[items[n].cat]||[]).push(n);});
+  let h='';
+  CAT_ORDER.forEach(c=>{if(!groups[c])return;
+    const gsum=groups[c].reduce((s,n)=>s+effKg(n)*items[n].qty,0);
+    h+=`<div class="doc-cat"><span>${esc(c)}</span><span>${fmt(gsum)} kg</span></div>`;
+    groups[c].forEach(n=>{const it=items[n];
+      h+=`<div class="doc-item"><span class="di-name">${esc(n)}${battTag(n)}</span><span class="di-q">×${it.qty}</span><span class="di-l">${fmt(effKg(n)*it.qty)+' kg'}</span></div>`;
+      const dl=detailLines(n).filter(l=>!l.s);if(dl.length&&it.pdfD!==false)h+='<div class="doc-detail">'+dl.map(l=>`<div>${esc(l.t)}</div>`).join('')+'</div>';
+    });});
+  return h;
+}
+function renderDoc(){
+  const meta=[cfg.unit,cfg.exercise,cfg.date].filter(Boolean).join('  &middot;  ');
+  let h='<div class="doc-bar no-print"><span class="db-tag">&#128279; View-only copy — generated from the Master List. Anyone with the link can read it (they can’t edit).</span>'
+    +'<button class="btn sm" id="docPrint">&#128424; Print / Save PDF</button>'
+    +'<button class="btn gold sm" id="docEdit">Open editable version</button></div>';
+  h+='<div class="doc-page"><div class="doc-head"><div class="doc-eyebrow">Battalion · Field Training Load Management</div><h1 class="doc-title">Load &amp; Packing List</h1>'+(meta?`<div class="doc-meta">${meta}</div>`:'')+'</div>';
+  const gen=order.filter(n=>!items[n].struck);   // the full source list — everyone reads the same list
+  h+='<h2 class="doc-h2" id="doc-general">General Packing List — everything to bring</h2>'+docItems(gen);
+  const gt=gen.reduce((s,n)=>s+effKg(n)*items[n].qty,0);
+  h+=`<div class="doc-total"><span>Total — full list (${gen.length} items)</span><span>${fmt(gt)} kg</span></div>`;
+  h+=`<div class="doc-foot">Generated ${new Date().toLocaleString()} · Weights are a planning reference — confirm against the current stores return before each serial.</div></div>`;
+  $('#docView').innerHTML=h;
+  $('#docPrint').onclick=()=>window.print();
+  $('#docEdit').onclick=()=>{document.body.classList.remove('docmode');renderMaster();window.scrollTo(0,0);};
+}
+function enterDocMode(){document.body.classList.add('docmode');showWeights=true;showDetail=true;renderDoc();}
+
+/* ---------- persistence ---------- */
+function snapshot(){return {v:6,items,assign,cfg,detailMap};}
+function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(snapshot()));}catch(e){}}
+function mergeDefaults(){
+  Object.keys(DATA.ITEMS).forEach(n=>{const m=DATA.ITEMS[n];
+    if(!items[n])items[n]={name:n,cat:m.cat,kg:m.kg,qty:1,batt:!!(m.batt||m.cells),cells:m.cells||'',pctBatt:!!m.pctBatt,pct:100,struck:false,custom:false,pdfD:true,pdfW:true};
+    if(items[n].pct==null)items[n].pct=100;
+    if(items[n].pdfD==null)items[n].pdfD=true;if(items[n].pdfW==null)items[n].pdfW=true;
+    if(!assign[n])assign[n]=DATA.ROLES.filter(r=>r.items.includes(n)).map(r=>r.key);});
+}
+function restore(){let raw;try{raw=localStorage.getItem(STORE_KEY);}catch(e){mergeDefaults();return;}if(!raw){mergeDefaults();return;}
+  try{const s=JSON.parse(raw);if(s.items)items=s.items;if(s.assign)assign=s.assign;if(s.cfg)cfg=Object.assign(cfg,s.cfg);
+    if(s.detailMap)detailMap=Object.assign(cloneDetail(DATA.DETAIL),cloneDetail(s.detailMap));
+    mergeDefaults();rebuildOrder();}catch(e){mergeDefaults();}}
+function applyCfg(){$('#cfgUnit').value=cfg.unit||'';$('#cfgExercise').value=cfg.exercise||'';$('#cfgDate').value=cfg.date||'';}
+function saveFile(){const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='load_master.json';a.click();URL.revokeObjectURL(a.href);}
+function openFile(file){const r=new FileReader();r.onload=e=>{try{const s=JSON.parse(e.target.result);if(s.items)items=s.items;if(s.assign)assign=s.assign;if(s.cfg)cfg=Object.assign(cfg,s.cfg);if(s.detailMap)detailMap=Object.assign(cloneDetail(DATA.DETAIL),cloneDetail(s.detailMap));Object.keys(items).forEach(n=>{if(items[n].pct==null)items[n].pct=100;});mergeDefaults();rebuildOrder();applyCfg();renderMaster();renderGeneral();renderEstab();save();toast('Loaded');}catch(err){toast('Could not read file');}};r.readAsText(file);}
+
+/* ---------- PDF ---------- */
+function pdfHeader(doc,title){const W=doc.internal.pageSize.getWidth();doc.setFillColor(51,63,34);doc.rect(0,0,W,56,'F');
+  doc.setTextColor(237,231,216);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(title,40,30);
+  doc.setFontSize(8.5);doc.setTextColor(207,201,169);
+  const m=[cfg.unit,cfg.exercise,cfg.date].filter(Boolean).join('  ·  ')||'Battalion · Field Training Load Management';
+  doc.text(m,40,45);return 76;}
+function listGroups(doc,names,startY){const W=doc.internal.pageSize.getWidth();let y=startY;const groups={};
+  names.filter(n=>!items[n].struck).forEach(n=>{(groups[items[n].cat]=groups[items[n].cat]||[]).push(n);});doc.setFontSize(9);   // struck-off items hidden
+  let grand=0;const qcol=showWeights?W-150:W-44;
+  CAT_ORDER.forEach(c=>{if(!groups[c])return;if(y>792){doc.addPage();y=48;}
+    doc.setFillColor(243,238,224);doc.rect(40,y-10,W-80,15,'F');doc.setFont('helvetica','bold');doc.setTextColor(51,63,34);doc.text(c.toUpperCase(),44,y);
+    const gs=groups[c].reduce((s,n)=>s+effKg(n)*items[n].qty,0);grand+=gs;
+    if(showWeights)doc.text(fmt(gs)+' kg',W-44,y,{align:'right'});y+=16;doc.setFont('helvetica','normal');
+    groups[c].forEach(n=>{const it=items[n];if(y>804){doc.addPage();y=48;}
+      const bt=it.batt&&it.cells?`  [${it.pctBatt?cellsAtPct(it.cells,it.pct)+' '+it.pct+'%':it.cells}]`:'';
+      doc.setTextColor(38,40,31);
+      doc.text(`☐  ${n}${bt}`,48,y);
+      doc.text(`×${it.qty}`,qcol,y,{align:'right'});
+      if(showWeights)doc.text(showW(n)?`${fmt(effKg(n)*it.qty)} kg`:'',W-44,y,{align:'right'});
+      y+=13.5;
+      const dls=detailLines(n).filter(l=>!l.s);
+      if(showDetail&&it.pdfD!==false&&dls.length){doc.setFontSize(7.5);doc.setTextColor(120,116,88);
+        dls.forEach(sub=>{if(y>806){doc.addPage();y=48;}
+          const wrapped=doc.splitTextToSize('–  '+sub.t,W-130);
+          wrapped.forEach(wl=>{if(y>806){doc.addPage();y=48;}doc.text(wl,62,y);y+=10;});});
+        doc.setFontSize(9);doc.setTextColor(38,40,31);y+=2;}
+    });y+=3;});
+  return {y,grand};}
+function pdfReady(){if(window.jspdf&&window.jspdf.jsPDF)return true;toast('PDF add-on needs internet — opening Print instead (choose “Save as PDF”)');setTimeout(()=>window.print(),400);return false;}
+function pdfGeneral(){if(!pdfReady())return;const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4'});const W=doc.internal.pageSize.getWidth();
+  let y=pdfHeader(doc,'GENERAL PACKING LIST — EVERYTHING TO BRING');
+  const names=order.filter(n=>!items[n].struck);const rr=listGroups(doc,names,y+6);y=rr.y;
+  if(showWeights){if(y>792){doc.addPage();y=48;}doc.setDrawColor(51,63,34);doc.setLineWidth(1.2);doc.line(40,y,W-40,y);y+=17;
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(51,63,34);doc.text('TOTAL — FULL LIST',44,y);doc.text(fmt(rr.grand)+' kg',W-44,y,{align:'right'});}
+  doc.save('general_packing_list.pdf');}
+function pdfBrief(){if(!pdfReady())return;const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4'});const W=doc.internal.pageSize.getWidth();
+  let y=pdfHeader(doc,'ESTABLISHMENT LOAD BRIEF');y+=4;const max=Math.max(...DATA.ROLES.map(r=>roleTotal(r.key)));
+  DATA.GRP_ORDER.forEach(grp=>{const mem=DATA.ROLES.filter(r=>r.grp===grp);if(y>770){doc.addPage();y=48;}
+    doc.setFillColor(74,90,50);doc.rect(40,y-11,W-80,15,'F');doc.setTextColor(237,231,216);doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.text(grp.toUpperCase(),44,y);y+=19;
+    mem.forEach(r=>{const t=roleTotal(r.key);if(y>800){doc.addPage();y=48;}doc.setTextColor(38,40,31);doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text(r.name,50,y);
+      const bx=250,bw=200;doc.setFillColor(243,238,224);doc.rect(bx,y-9,bw,11,'F');doc.setFillColor(74,90,50);doc.rect(bx,y-9,bw*(t/(max||1)),11,'F');
+      doc.setTextColor(51,63,34);doc.setFont('helvetica','bold');doc.text(fmt(t)+' kg',W-40,y,{align:'right'});y+=18;});y+=4;});
+  DATA.ROLES.forEach(r=>{doc.addPage();let yy=pdfHeader(doc,'PACKING LIST — '+r.name.toUpperCase());
+    const names=roleItemsDisp(r.key);const rr=listGroups(doc,names,yy+6);yy=rr.y;const tot=roleTotal(r.key);
+    if(showWeights){if(yy>792){doc.addPage();yy=48;}doc.setDrawColor(51,63,34);doc.setLineWidth(1.2);doc.line(40,yy,W-40,yy);yy+=17;
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(51,63,34);doc.text('TOTAL (ref '+fmt(r.load)+' kg)',44,yy);doc.text(fmt(tot)+' kg',W-44,yy,{align:'right'});}});
+  doc.save('establishment_load_brief.pdf');}
+
+/* ---------- desktop / mobile view switch ---------- */
+$('#vsDesk').onclick=()=>{document.body.classList.remove('force-m');$('#vsDesk').classList.add('on');$('#vsMob').classList.remove('on');};
+$('#vsMob').onclick=()=>{document.body.classList.add('force-m');$('#vsMob').classList.add('on');$('#vsDesk').classList.remove('on');};
+
+/* ---------- tabs + wiring ---------- */
+$$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+  $$('.view').forEach(v=>v.classList.remove('active'));$('#view-'+t.dataset.view).classList.add('active');
+  ({master:renderMaster,general:renderGeneral,estab:renderEstab})[t.dataset.view]();});
+
+$('#mSearch').addEventListener('input',e=>renderMaster(e.target.value));
+$('#acAdd').onclick=addItem;$('#acName').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
+let _confirmCb=null;
+function confirmModal(msg,yesLabel,cb){$('#confirmMsg').textContent=msg;$('#confirmYes').textContent=yesLabel||'Yes';_confirmCb=cb;$('#confirmModal').classList.add('show');}
+$('#confirmYes').onclick=()=>{$('#confirmModal').classList.remove('show');const cb=_confirmCb;_confirmCb=null;if(cb)cb();};
+$('#confirmNo').onclick=()=>{$('#confirmModal').classList.remove('show');_confirmCb=null;};
+$('#confirmModal').addEventListener('click',e=>{if(e.target===$('#confirmModal')){$('#confirmModal').classList.remove('show');_confirmCb=null;}});
+$('#mRestore').onclick=()=>confirmModal('Reset EVERYTHING back to the Inspection Masterlist baseline? This erases all your edits (weights, quantities, batteries, detail, who-carries, strike-offs) for every item and cannot be undone.','Reset everything',()=>{const k=cfg;buildDefaults();detailMap=cloneDetail(DATA.DETAIL);cfg=k;save();renderMaster();renderGeneral();renderEstab();toast('Everything reset to Masterlist baseline');});
+$('#mClearStrikes').onclick=clearAllStrikes;
+$('#mCollapse').onclick=()=>{const anyOpen=CAT_ORDER.some(c=>!collapsedCats.has(c)&&order.some(n=>items[n].cat===c));if(anyOpen){CAT_ORDER.forEach(c=>collapsedCats.add(c));$('#mCollapse').innerHTML='&#8862; Expand sections';}else{collapsedCats.clear();$('#mCollapse').innerHTML='&#8863; Collapse sections';}renderMaster();};
+$('#mHideDetail').onclick=()=>{hideDetail=!hideDetail;document.body.classList.toggle('hide-detail',hideDetail);const btn=$('#mHideDetail');btn.textContent=hideDetail?'Show detail':'Hide detail';btn.classList.toggle('gold',hideDetail);};
+$('#mSave').onclick=saveFile;$('#mOpen').onclick=()=>$('#mFile').click();$('#mFile').addEventListener('change',e=>{if(e.target.files[0])openFile(e.target.files[0]);e.target.value='';});
+['Unit','Exercise','Date'].forEach(k=>{const id='cfg'+k;$('#'+id).addEventListener('input',()=>{cfg[k.toLowerCase()]=$('#'+id).value;save();});});
+$('#genShowWt').onchange=e=>{showWeights=e.target.checked;$('#ovShowWt').checked=showWeights;renderGeneral();};
+$('#ovShowWt').onchange=e=>{showWeights=e.target.checked;$('#genShowWt').checked=showWeights;renderEstab();};
+$('#genShowDet').onchange=e=>{showDetail=e.target.checked;$('#ovShowDet').checked=showDetail;renderGeneral();};
+$('#ovShowDet').onchange=e=>{showDetail=e.target.checked;$('#genShowDet').checked=showDetail;renderEstab();};
+$('#genPrint').onclick=()=>{window.print();};
+$('#genPdf').onclick=pdfGeneral;
+$('#ovSort').onchange=renderEstab;let allOpen=false;
+$('#ovExpand').onclick=()=>{allOpen=!allOpen;$$('#estabHost .estab').forEach(e=>{if(allOpen){e.classList.add('open');fillEstab(e,ROLE_BY_KEY[e.dataset.key]);}else e.classList.remove('open');});$('#ovExpand').textContent=allOpen?'Collapse all':'Expand all';};
+$('#ovPrint').onclick=()=>window.print();$('#ovPdf').onclick=pdfBrief;
+
+/* ---------- share-link wiring ---------- */
+$('#mLink').onclick=showLinkModal;$('#genLink').onclick=showLinkModal;$('#ovLink').onclick=showLinkModal;
+$('#mPublish').onclick=publishUpdate;
+$('#linkCopy').onclick=()=>{const i=$('#linkUrl');i.select();i.setSelectionRange(0,99999);
+  const done=()=>{toast('Link copied');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(i.value).then(done).catch(()=>{try{document.execCommand('copy');done();}catch(e){toast('Select the link and copy it');}});}
+  else{try{document.execCommand('copy');done();}catch(e){toast('Select the link and copy it');}}};
+$('#linkPreview').onclick=()=>{$('#linkModal').classList.remove('show');enterDocMode();};
+$('#linkOpen').onclick=()=>window.open($('#linkUrl').value,'_blank');
+$('#linkClose').onclick=()=>$('#linkModal').classList.remove('show');
+$('#linkModal').addEventListener('click',e=>{if(e.target===$('#linkModal'))$('#linkModal').classList.remove('show');});
+
+/* ---------- init / boot router ---------- */
+(function boot(){
+  const h=location.hash||'';
+  if(h.indexOf('#v=')===0){
+    try{applyDelta(JSON.parse(b64d(h.slice(3))));applyCfg();enterDocMode();return;}
+    catch(e){/* bad link — fall through to normal app */}
+  }
+  let hadSaved=false;try{hadSaved=!!localStorage.getItem(STORE_KEY);}catch(e){}
+  if(!hadSaved&&BOOT_DELTA){
+    // a visitor opening the permanent link: show the published list, read-only, like a doc
+    try{applyDelta(JSON.parse(b64d(BOOT_DELTA)));applyCfg();if(h!=='#edit'){enterDocMode();return;}renderMaster();return;}
+    catch(e){/* bad baked state — fall through */}
+  }
+  buildDefaults();restore();applyCfg();
+  if(h==='#doc'){enterDocMode();return;}
+  renderMaster();
+})();
+</script>
+</body>
+</html>
