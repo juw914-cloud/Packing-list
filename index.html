@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <meta name="theme-color" content="#333F22">
+<meta name="robots" content="noindex, nofollow">
 <title>1 Guards — Weight Management &amp; Packing List</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -254,6 +255,15 @@ window.FIREBASE_CONFIG = {
   .lockbar.editing{background:#eef3e5;border-color:var(--olive);}
   .lockbar.flash{background:#f7e0da;border-color:var(--brick);transition:background .3s;}
   .toast.red{background:var(--brick-dark);}
+  .sysbanner{display:none;background:var(--brick-dark);color:#fff;padding:8px 14px;align-items:center;gap:12px;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;position:sticky;top:0;z-index:70;justify-content:space-between;flex-wrap:wrap;}
+  .sysbanner.show{display:flex;}
+  .sysbanner .btn{background:#fff;border-color:#fff;color:var(--brick-dark);}
+  .sysoverlay{position:fixed;inset:0;background:var(--olive-dark);display:none;align-items:center;justify-content:center;z-index:300;padding:24px;}
+  .sysoverlay.show{display:flex;}
+  .sysbox{text-align:center;color:var(--paper);max-width:440px;}
+  .syslock{font-size:56px;}
+  .systitle{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:26px;color:var(--gold);margin-top:8px;}
+  .sysmsg{font-size:14px;color:#CFC9A9;margin-top:10px;line-height:1.6;}
   .lock-ico{font-size:14px;}
   .lock-msg{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11.5px;color:var(--stamp);}
   .lockbar.editing .lock-msg{color:var(--olive-dark);}
@@ -326,18 +336,12 @@ window.FIREBASE_CONFIG = {
 <div class="modal no-print" id="signinModal">
   <div class="modal-box">
     <div class="modal-title">Editor sign-in</div>
-    <p class="modal-note">Enter the editor login your commander shared with you. Viewing stays open to everyone without a login.</p>
-    <label class="modal-lab">Email</label>
-    <input id="siEmail" type="email" autocomplete="username" placeholder="editor@yourunit">
-    <label class="modal-lab">Password</label>
-    <input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••">
+    <p class="modal-note">Only editors on the approved list can sign in and change the list. Everyone else views without signing in.</p>
+    <button class="btn gold" id="siGoogle" style="width:100%;justify-content:center;">Sign in with Google (Gmail)</button>
     <div class="modal-err" id="siErr"></div>
-    <div class="modal-btns">
+    <div class="modal-btns" style="justify-content:center;">
       <button class="btn ghost sm" id="siCancel">Cancel</button>
-      <button class="btn sm" id="siGo">Sign in</button>
     </div>
-    <div style="text-align:center;margin:10px 0 2px;font-size:10px;color:var(--stamp);letter-spacing:.05em;">— OR —</div>
-    <button class="btn gold sm" id="siGoogle" style="width:100%;justify-content:center;">Sign in with Google (Gmail)</button>
   </div>
 </div>
 
@@ -494,6 +498,17 @@ window.FIREBASE_CONFIG = {
   </footer>
 </div>
 
+<div class="sysbanner no-print" id="sysBanner">
+  <span>&#9940; SYSTEM IS OFFLINE — everyone else sees an offline notice. You still have access.</span>
+  <button class="btn sm" id="sysUp">Bring system online</button>
+</div>
+<div class="sysoverlay" id="sysOverlay">
+  <div class="sysbox">
+    <div class="syslock">&#128274;</div>
+    <div class="systitle">System Offline</div>
+    <div class="sysmsg" id="sysMsgText">This system is currently offline.</div>
+  </div>
+</div>
 <div class="lb" id="lb"><img id="lbImg" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -536,6 +551,7 @@ let ui={name:'',section:'',body:''};
 let editMode=false;
 let openEditor=null;   // item name whose ▸ More panel is expanded (kept open across edits)
 let canEdit=true;   // local mode = full edit; cloud mode = only when signed in
+let sysDown=false, sysMsg='';   // editor-controlled: take the whole system offline for everyone
 
 /* ---------- live cloud (Firebase) — optional, off until config pasted ---------- */
 const cloud={on:false,db:null,auth:null,user:null,ref:null,timer:null,lastPush:'',seeded:false};
@@ -558,8 +574,8 @@ function cloudInit(){
 }
 function applyRemote(s){
   const w=s.work||{items:s.items,assign:s.assign,detailMap:s.detailMap,cfg:s.cfg};
-  const inc=JSON.stringify({w:{items:w.items,assign:w.assign,detailMap:w.detailMap,cfg:w.cfg},p:s.published||null});
-  const cur=JSON.stringify({w:{items,assign,detailMap,cfg},p:pub});
+  const inc=JSON.stringify({w:{items:w.items,assign:w.assign,detailMap:w.detailMap,cfg:w.cfg},p:s.published||null,sd:!!s.sysDown,sm:s.sysMsg||''});
+  const cur=JSON.stringify({w:{items,assign,detailMap,cfg},p:pub,sd:!!sysDown,sm:sysMsg||''});
   if(inc===cur)return;
   const foc=document.activeElement,busy=foc&&/INPUT|SELECT/.test(foc.tagName);
   if(s.published){pub=s.published;pubAt=s.pubAt||pubAt;pubBy=s.pubBy||pubBy;pubChanges=(s.pubChanges!==undefined?s.pubChanges:pubChanges);if(s.pubBaseline)pubBaseline=s.pubBaseline;savePub();}
@@ -570,14 +586,15 @@ function applyRemote(s){
     items=pub.items||items;assign=pub.assign||assign;detailMap=pub.detailMap||detailMap;cfg=pub.cfg||cfg;
     if(pub.catOrder&&pub.catOrder.length){CAT_ORDER.length=0;pub.catOrder.forEach(c=>CAT_ORDER.push(c));}
   }
-  saveLocal();updStamp();if(!busy)renderActive();
+  if(s.sysDown!==undefined)sysDown=s.sysDown;if(s.sysMsg!==undefined)sysMsg=s.sysMsg;
+  saveLocal();updStamp();if(!busy)renderActive();applySysState();
   cloud.lastSeen=nowISO();markUpdated();
 }
 function markUpdated(){toast('● Updated just now — new version loaded',true);const bar=$('#lockbar');if(bar){bar.classList.add('flash');setTimeout(()=>bar.classList.remove('flash'),1800);}
   const m=$('#lockMsg');if(m&&!cloud.user){let t='';try{t=new Date(cloud.lastSeen).toLocaleTimeString();}catch(e){}m.textContent='View only — updated '+t;}}
 function cloudPush(immediate){
   if(!cloud.on||!cloud.user)return;
-  const payload=JSON.stringify({work:{items,assign,detailMap,cfg,catOrder:CAT_ORDER},published:pub,pubAt,pubBy,pubChanges,pubBaseline,hist,events:savedEvents});cloud.lastPush=payload;
+  const payload=JSON.stringify({work:{items,assign,detailMap,cfg,catOrder:CAT_ORDER},published:pub,pubAt,pubBy,pubChanges,pubBaseline,hist,events:savedEvents,sysDown,sysMsg});cloud.lastPush=payload;
   clearTimeout(cloud.timer);
   const doWrite=function(){cloud.ref.set({payload:payload,updated:firebase.firestore.FieldValue.serverTimestamp(),by:(cloud.user&&cloud.user.email)||''})
       .then(function(){cloud.seeded=true;}).catch(function(e){toast('Cloud save failed — check connection');console.warn(e);});};
@@ -590,7 +607,7 @@ function setLockUI(){
   else if(cloud.user){bar.classList.add('editing');ico.innerHTML='&#128275;';msg.textContent='Editing as '+(cloud.user.displayName||cloud.user.email||'editor');unlock.style.display='none';out.style.display='';}
   else{bar.classList.remove('editing');ico.innerHTML='&#128274;';msg.textContent='View only';unlock.style.display='';out.style.display='none';
     if(pub){items=pub.items||items;assign=pub.assign||assign;detailMap=pub.detailMap||detailMap;cfg=pub.cfg||cfg;}}
-  gateTabs();
+  gateTabs();applySysState();
 }
 
 /* ---------- undo / redo + edit history (who edited) ---------- */
@@ -747,6 +764,17 @@ function renameCategory(oldC,newC){newC=(newC||'').trim();if(!newC||newC===oldC)
   if(imgMap['§cat:'+oldC]){imgMap['§cat:'+newC]=imgMap['§cat:'+oldC];delete imgMap['§cat:'+oldC];}
   return true;}
 function applyImg(label,fn){fn();logEdit(label);save();if(document.querySelector('.tab.active')&&document.querySelector('.tab.active').dataset.view==='weights')renderWeights();toast(label);}
+/* ---------- system on/off (editor takedown switch) ---------- */
+function applySysState(){const ov=$('#sysOverlay'),ban=$('#sysBanner');
+  const lockViewer=sysDown&&cloud.on&&!canEdit;   // viewers blocked; editors keep access
+  if(ov)ov.classList.toggle('show',lockViewer);
+  if($('#sysMsgText'))$('#sysMsgText').textContent=sysMsg||'This system is currently offline. Please check back later.';
+  if(ban)ban.classList.toggle('show',sysDown&&canEdit);}
+function setSystemDown(down){sysDown=down;if(down&&!sysMsg)sysMsg='This system is currently offline.';
+  logEdit(down?'SYSTEM taken OFFLINE for everyone':'SYSTEM brought back ONLINE');
+  save();cloudPush(true);applySysState();updHistBtns();if(document.querySelector('.tab.active').dataset.view==='weights')renderHistory();
+  toast(down?'System is now OFFLINE for everyone':'System is back ONLINE',true);
+  const btn=$('#stSysToggle');if(btn)btn.textContent=sysDown?'⛔ Bring system ONLINE':'⛔ Take system OFFLINE (everyone)';}
 function addItem(name,cat,kg,qty,batt){name=(name||'').trim();if(!name||items[name])return false;
   items[name]={name,cat:cat||'Custom',kg:isNaN(kg)?0:kg,qty:qty||1,batt:!!batt,cells:batt||'',pctBatt:false,pct:100,struck:false,custom:true,pdfD:true,pdfW:true};
   assign[name]=[];return true;}
@@ -883,11 +911,23 @@ function renderSettings(){const w=$('#wlSettings');if(!w)return;
       <div class="field"><label>Exercise / Serial</label><input id="stEx" placeholder="e.g. BN OOC March"></div>
       <div class="field"><label>Date</label><input id="stDate" type="date"></div>
       <div class="field" style="grid-column:1/-1;"><label>Notes / small information (shown to everyone on the Packing List)</label><input id="stNote" placeholder="e.g. Draw hard plates from store by 0800"></div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--khaki-line);">
+      <div class="section-label" style="margin:0 0 6px;">System control</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button class="btn brick sm" id="stSysToggle"></button>
+        <input id="stSysMsg" placeholder="Offline message shown to everyone" style="flex:1 1 240px;border:1px solid var(--khaki-line);background:var(--panel);padding:8px 10px;font-family:inherit;font-size:12.5px;">
+      </div>
+      <div style="font-size:10.5px;color:var(--stamp);margin-top:6px;line-height:1.5;">Instantly takes the whole system offline for everyone (they see an offline notice; you keep access). Use it to bring the system down after the exercise. Bring it back online anytime.</div>
     </div></div>`;
   $('#stEx').value=cfg.exercise||'';$('#stDate').value=cfg.date||'';$('#stNote').value=cfg.note||'';
   $('#stEx').onchange=e=>{cfg.exercise=e.target.value;save();updStamp();};
   $('#stDate').onchange=e=>{cfg.date=e.target.value;save();};
   $('#stNote').onchange=e=>{cfg.note=e.target.value;save();};
+  $('#stSysToggle').textContent=sysDown?'⛔ Bring system ONLINE':'⛔ Take system OFFLINE (everyone)';
+  $('#stSysToggle').onclick=()=>askConfirm(sysDown?'Bring the system back online for everyone?':'Take the WHOLE system offline for everyone now? They will see an offline notice until you bring it back.',()=>setSystemDown(!sysDown),sysDown?'Bring online':'Take offline');
+  $('#stSysMsg').value=sysMsg||'';
+  $('#stSysMsg').onchange=e=>{sysMsg=e.target.value;save();cloudPush(true);applySysState();};
   fillCatSelect();
 }
 let histOpen=true;
@@ -1094,11 +1134,12 @@ function pdfPacking(){const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',
   doc.save('packing_'+role.name.replace(/[^\w-]+/g,'_')+'.pdf');}
 
 /* ---------- persistence (his v8 schema) ---------- */
-function snapshot(){return {v:8,items,assign,cfg,detailMap,catOrder:CAT_ORDER,imgMap,hist};}
+function snapshot(){return {v:8,items,assign,cfg,detailMap,catOrder:CAT_ORDER,imgMap,hist,sysDown,sysMsg};}
 function saveLocal(){try{localStorage.setItem(STORE_KEY,JSON.stringify(snapshot()));}catch(e){}}
 function save(){saveLocal();cloudPush();}
 function restore(){let raw;try{raw=localStorage.getItem(STORE_KEY);}catch(e){return;}if(!raw)return;
   try{const s=JSON.parse(raw);if(s.items)items=s.items;if(s.assign)assign=s.assign;if(s.detailMap)detailMap=s.detailMap;if(s.imgMap)imgMap=s.imgMap;if(s.cfg)cfg=s.cfg;if(s.hist)hist=s.hist;
+    if(s.sysDown!==undefined)sysDown=s.sysDown;if(s.sysMsg!==undefined)sysMsg=s.sysMsg;
     if(s.catOrder&&s.catOrder.length){CAT_ORDER.length=0;s.catOrder.forEach(c=>CAT_ORDER.push(c));}}catch(e){}}
 
 /* ---------- tabs ---------- */
@@ -1161,19 +1202,19 @@ function exportCsv(){const incl=$('#ovStruck').checked;const rows=[['Group','App
   const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='weight_by_appointment.csv';a.click();URL.revokeObjectURL(a.href);toast('CSV exported');}
 /* ---- editor sign-in ---- */
-function showSignin(){$('#siErr').textContent='';$('#siEmail').value='';$('#siPass').value='';$('#signinModal').classList.add('show');$('#siEmail').focus();}
+function showSignin(){$('#siErr').textContent='';$('#signinModal').classList.add('show');}
 function hideSignin(){$('#signinModal').classList.remove('show');}
-function doSignin(){const em=$('#siEmail').value.trim(),pw=$('#siPass').value;if(!em||!pw){$('#siErr').textContent='Enter email and password.';return;}
-  if(!cloud.on){$('#siErr').textContent='Cloud not configured yet.';return;}
-  $('#siErr').textContent='Signing in…';
-  cloud.auth.signInWithEmailAndPassword(em,pw).then(function(){hideSignin();toast('Editing unlocked');})
-    .catch(function(e){$('#siErr').textContent=(e&&e.code==='auth/invalid-credential')?'Wrong email or password.':((e&&e.message)||'Sign-in failed.');});}
-function doGoogle(){if(!cloud.on){$('#siErr').textContent='Cloud not set up yet.';return;}
+function doGoogle(){if(!cloud.on){$('#siErr').textContent='Cloud not set up yet — the Firebase config still needs to be added.';return;}
   $('#siErr').textContent='Opening Google…';const prov=new firebase.auth.GoogleAuthProvider();
   cloud.auth.signInWithPopup(prov).then(function(){hideSignin();toast('Editing unlocked');})
-    .catch(function(e){$('#siErr').textContent=(e&&e.message)||'Google sign-in failed.';});}
-$('#btnUnlock').onclick=showSignin;$('#siCancel').onclick=hideSignin;$('#siGo').onclick=doSignin;$('#siGoogle').onclick=doGoogle;
-$('#siPass').addEventListener('keydown',e=>{if(e.key==='Enter')doSignin();});
+    .catch(function(e){var c=(e&&e.code)||'';
+      var m=c==='auth/unauthorized-domain'?'This web address is not yet authorised in Firebase. Add it under Authentication → Settings → Authorized domains.'
+        :c==='auth/popup-blocked'?'Your browser blocked the sign-in popup. Allow popups for this site and try again.'
+        :c==='auth/popup-closed-by-user'?'Sign-in was closed before finishing. Tap the button and try again.'
+        :c==='auth/operation-not-allowed'?'Google sign-in is not enabled yet in Firebase (Authentication → Sign-in method → Google).'
+        :((e&&e.message)||'Google sign-in failed.');
+      $('#siErr').textContent=m;});}
+$('#btnUnlock').onclick=showSignin;$('#siCancel').onclick=hideSignin;$('#siGoogle').onclick=doGoogle;
 $('#signinModal').addEventListener('click',e=>{if(e.target.id==='signinModal')hideSignin();});
 $('#btnSignout').onclick=()=>{if(cloud.auth)cloud.auth.signOut();toast('Signed out — view only');};
 /* ---- Preview extract (whole finalised list) ---- */
@@ -1242,6 +1283,8 @@ updStamp();updHistBtns();cloudInit();setLockUI();
   $$('.tab').forEach(x=>x.classList.remove('active'));$$('.view').forEach(v=>v.classList.remove('active'));
   const t=document.querySelector('.tab[data-view="'+def+'"]');if(t){t.classList.add('active');$('#view-'+def).classList.add('active');}
   (RENDERERS[def]||renderEndProduct)();})();
+if($('#sysUp'))$('#sysUp').onclick=()=>askConfirm('Bring the system back online for everyone now?',()=>setSystemDown(false),'Bring online');
+applySysState();
 setHeadH();setTimeout(setHeadH,300);
 
 </script>
